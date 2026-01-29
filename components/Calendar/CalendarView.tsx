@@ -127,60 +127,59 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    <div className={`flex flex-col h-full bg-[#121212] p-4 md:p-6 pt-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem]
+    <div className={`flex flex-col h-full bg-[#121212] p-2 md:p-6 pt-1 text-gray-200 transition-all duration-500 border-4 rounded-[2rem]
       ${mode === 'copy' ? 'border-cyan-500/20' : 
         mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
     >
-      {/* 2단 고정 타이틀바 */}
-      <div className="flex flex-col w-full gap-3 mb-4">
+      {/* 달력 모듈 상단 영역 (여백 최소화) */}
+      <div className="flex flex-col w-full mb-1">
         
-        {/* 첫째줄: 달력모듈타이틀(좌) + 일반/복사/삭제/되돌리기(우) */}
-        <div className="flex items-center justify-between w-full h-12">
+        {/* 첫째줄: 타이틀(좌) + 작업 모드(우) - 높이 압축 */}
+        <div className="flex items-center justify-between w-full h-10">
           <div className="flex-1 flex justify-start">
             {isEditingTitle ? (
-              <input autoFocus className="bg-[#2c2c2e] border-2 border-blue-500 rounded-xl px-4 py-1 text-xl md:text-3xl font-black text-white outline-none" value={calendarTitle} onChange={(e) => setCalendarTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded px-2 py-0.5 text-lg md:text-2xl font-black text-white outline-none" value={calendarTitle} onChange={(e) => setCalendarTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
             ) : (
-              <h2 className="text-xl md:text-3xl font-black text-white cursor-pointer hover:text-blue-400 tracking-tight whitespace-nowrap" onClick={() => setIsEditingTitle(true)}>{calendarTitle}</h2>
+              <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter whitespace-nowrap" onClick={() => setIsEditingTitle(true)}>{calendarTitle}</h2>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex bg-[#1a1a2e] p-1 rounded-xl border border-[#3a3a5e] shadow-xl">
-              <button onClick={() => { setMode('normal'); setClipboard([]); }} className={`p-1.5 md:p-2 rounded-lg transition-all ${mode === 'normal' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}><MousePointer2 className="w-5 h-5 text-amber-400" /></button>
-              <button onClick={() => setMode('copy')} className={`p-1.5 md:p-2 rounded-lg transition-all ${mode === 'copy' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}><Copy className="w-5 h-5 text-cyan-400" /></button>
-              <button onClick={() => setMode('delete')} className={`p-1.5 md:p-2 rounded-lg transition-all ${mode === 'delete' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}><Trash2 className="w-5 h-5 text-rose-500" /></button>
+          {/* 아이콘 크기 고정 및 간격 유지 */}
+          <div className="flex items-center gap-1.5 scale-95 origin-right">
+            <div className="flex bg-[#1a1a2e] p-0.5 rounded-lg border border-[#3a3a5e] shadow-lg">
+              <button onClick={() => { setMode('normal'); setClipboard([]); }} className={`p-1.5 rounded transition-all ${mode === 'normal' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}><MousePointer2 className="w-5 h-5 text-amber-400" /></button>
+              <button onClick={() => setMode('copy')} className={`p-1.5 rounded transition-all ${mode === 'copy' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}><Copy className="w-5 h-5 text-cyan-400" /></button>
+              <button onClick={() => setMode('delete')} className={`p-1.5 rounded transition-all ${mode === 'delete' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}><Trash2 className="w-5 h-5 text-rose-500" /></button>
             </div>
-            <button onClick={handleUndo} className="p-2 bg-[#1a1a2e] border border-[#3a3a5e] rounded-xl text-emerald-400 relative">
+            <button onClick={handleUndo} className="p-1.5 bg-[#1a1a2e] border border-[#3a3a5e] rounded-lg text-emerald-400 relative">
               <RotateCcw className="w-5 h-5" />
-              {undoStack.length > 0 && <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-black">{undoStack.length}</span>}
+              {undoStack.length > 0 && <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-black">{undoStack.length}</span>}
             </button>
           </div>
         </div>
 
-        {/* 둘째줄: < 연.월 >(좌) + 저장/업로드(우) */}
-        <div className="flex items-center justify-between w-full h-12 border-t border-[#3a3a5e]/30 pt-3">
-          <div className="flex items-center bg-[#1a1a2e] rounded-xl p-1 border border-[#3a3a5e] shadow-lg">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded-lg"><ChevronLeft className="w-5 h-5 text-blue-400" /></button>
-            <span className="text-sm md:text-base font-black px-4 min-w-[90px] md:min-w-[120px] text-center text-white">{format(currentMonth, 'yyyy. MM', { locale: ko })}</span>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded-lg"><ChevronRight className="w-5 h-5 text-blue-400" /></button>
+        {/* 둘째줄: 연월이동(좌) + 엑셀(우) - 줄 간격 밀착 */}
+        <div className="flex items-center justify-between w-full h-10 border-t border-[#3a3a5e]/20 pt-1">
+          <div className="flex items-center bg-[#1a1a2e] rounded-lg p-0.5 border border-[#3a3a5e] shadow-md scale-95 origin-left">
+            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-[#2c2c2e] rounded"><ChevronLeft className="w-4.5 h-4.5 text-blue-400" /></button>
+            <span className="text-xs md:text-sm font-black px-3 min-w-[80px] md:min-w-[100px] text-center text-white">{format(currentMonth, 'yyyy. MM', { locale: ko })}</span>
+            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-[#2c2c2e] rounded"><ChevronRight className="w-4.5 h-4.5 text-blue-400" /></button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={exportToExcel} className="p-2 bg-emerald-700 rounded-xl hover:bg-emerald-600 shadow-md text-white" title="월간 저장">
-              <FileDown className="w-5 h-5" />
-            </button>
-            <label className="p-2 bg-[#1a1a2e] border border-[#3a3a5e] rounded-xl cursor-pointer hover:bg-[#3a3a5e]" title="엑셀 업로드">
-              <FileUp className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center gap-1.5 scale-95 origin-right">
+            <button onClick={exportToExcel} className="p-1.5 bg-emerald-700 rounded-lg text-white shadow-sm" title="월간 저장"><FileDown className="w-4.5 h-4.5" /></button>
+            <label className="p-1.5 bg-[#1a1a2e] border border-[#3a3a5e] rounded-lg cursor-pointer hover:bg-[#3a3a5e]" title="엑셀 업로드">
+              <FileUp className="w-4.5 h-4.5 text-emerald-400" />
               <input type="file" ref={fileInputRef} onChange={importFromExcel} accept=".xlsx, .xls" className="hidden" />
             </label>
           </div>
         </div>
       </div>
 
-      {/* 달력 그리드 */}
-      <div className="flex-grow grid grid-cols-7 gap-2 md:gap-3 overflow-auto">
+      {/* 달력 그리드 영역 (상단 여백 최소화로 더 넓어진 영역) */}
+      <div className="flex-grow grid grid-cols-7 gap-1 md:gap-2 overflow-auto">
         {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-          <div key={day} className="text-center font-black py-1 text-sm md:text-lg" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
+          <div key={day} className="text-center font-black py-0.5 text-xs md:text-sm" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
         ))}
         {calendarDays.map((day) => {
           const daySchedules = schedules.filter(s => isSameDay(new Date(s.date), day));
@@ -191,9 +190,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
           if (!isCurrentMonth) dayColor = 'rgba(156, 163, 175, 0.1)';
 
           return (
-            <div key={day.toString()} onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} className={`min-h-[90px] md:min-h-[110px] p-2 md:p-4 rounded-[1.5rem] md:rounded-[1.8rem] border transition-all cursor-pointer flex flex-col relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-30'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : ''}`}>
-              <div className="flex items-baseline gap-1"><span className="text-xl md:text-2xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>{isCurrentMonth && label && <span className="text-[8px] md:text-xs font-bold" style={{ color: COLORS.SUNDAY }}>{label}</span>}</div>
-              <div className="mt-1 space-y-1 overflow-hidden">{daySchedules.slice(0, 2).map((s) => (<div key={s.id} className="text-[9px] md:text-[11px] px-2 py-0.5 bg-blue-600/10 text-blue-300 rounded-md truncate font-bold border border-blue-500/10">{s.title}</div>))}{daySchedules.length > 2 && <div className="text-[9px] text-gray-500 pl-1 font-black">+{daySchedules.length - 2}</div>}</div>
+            <div key={day.toString()} onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} className={`min-h-[85px] md:min-h-[105px] p-1 md:p-2 rounded-[1.2rem] md:rounded-[1.5rem] border transition-all cursor-pointer flex flex-col relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-30'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}>
+              <div className="flex items-baseline gap-1"><span className="text-lg md:text-xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>{isCurrentMonth && label && <span className="text-[7px] md:text-[9px] font-bold truncate" style={{ color: COLORS.SUNDAY }}>{label}</span>}</div>
+              <div className="mt-0.5 space-y-0.5 overflow-hidden">{daySchedules.slice(0, 3).map((s) => (<div key={s.id} className="text-[8px] md:text-[10px] px-1.5 py-0.5 bg-blue-600/10 text-blue-300 rounded-md truncate font-bold border border-blue-500/10">{s.title}</div>))}{daySchedules.length > 3 && <div className="text-[8px] text-gray-500 pl-1 font-black">+{daySchedules.length - 3}</div>}</div>
             </div>
           );
         })}
@@ -201,8 +200,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
 
       {clipboard.length > 0 && mode === 'copy' && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-3 px-6 py-3 bg-[#2c2c2e] text-cyan-400 rounded-2xl shadow-2xl font-black border border-cyan-900/50 text-sm md:text-base">
-            <ClipboardCheck className="w-5 h-5" /> {clipboard.length}개 복사 대기 중
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-[#2c2c2e] text-cyan-400 rounded-2xl shadow-2xl font-black border border-cyan-900/50 text-xs">
+            <ClipboardCheck className="w-4 h-4" /> {clipboard.length}개 복사 대기 중
           </div>
         </div>
       )}
