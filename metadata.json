@@ -1,0 +1,7 @@
+{
+  "name": "Metal Dark Scheduler & Member Manager",
+  "description": "A high-visibility, dark metal themed mobile-first application for schedule and member management with Excel support.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
