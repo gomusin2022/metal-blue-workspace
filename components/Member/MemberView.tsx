@@ -165,8 +165,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
       )}
 
       {/* 2단 고정 타이틀바 */}
-      <div className="flex flex-col w-full gap-3 mb-3">
-        {/* 1단: 타이틀 + 관리 아이콘 */}
+      <div className="flex flex-col w-full gap-2 mb-3">
         <div className="flex items-center justify-between w-full h-10">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
@@ -184,51 +183,47 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           </div>
         </div>
 
-        {/* 2단: 소트버튼(정사각형) + 문자/인원 */}
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/30 pt-2">
           <div className="flex gap-1">
             {sortButtons.map(btn => (
-              <button
-                key={btn.key}
-                onClick={() => handleSortToggle(btn.key)}
-                className={`w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-lg border text-[10px] md:text-xs font-black transition-all
-                  ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}
-              >
+              <button key={btn.key} onClick={() => handleSortToggle(btn.key)} className={`w-9 h-9 md:w-11 md:h-11 flex items-center justify-center rounded-lg border text-[10px] md:text-xs font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
                 {btn.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleSendSMS} className="p-2 bg-orange-600/20 border border-orange-500/50 rounded-lg text-orange-400 text-[10px] md:text-xs font-black"><SendHorizontal className="w-4 h-4 mx-auto mb-0.5" />문자</button>
-            <div className="text-right leading-none shrink-0 font-black">
-              <div className="text-blue-400 text-[10px] md:text-sm">선택 {selectedIds.size}</div>
-              <div className="text-gray-600 text-[8px] md:text-xs">전체 {members.length}</div>
+          <div className="flex items-center gap-3">
+            <button onClick={handleSendSMS} className="p-2 bg-orange-600/20 border border-orange-500/50 rounded-lg text-orange-400"><SendHorizontal className="w-5 h-5" /></button>
+            <div className="bg-[#1a1a2e] px-3 py-1.5 rounded-xl border border-[#3a3a5e] font-black text-xs md:text-sm">
+              <span className="text-blue-400">선택 {selectedIds.size}</span>
+              <span className="text-gray-600 mx-2">/</span>
+              <span className="text-white">전체 {members.length}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 회원 목록 테이블 (휴대폰 콤팩트 최적화) */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-xl border border-[#3a3a5e]">
-        <table className="w-full text-left border-collapse table-fixed">
-          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[10px] md:text-sm z-10">
-            <tr>
-              <th className="p-1 w-8 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.size === members.length && members.length > 0} onChange={toggleAll} /></th>
-              <th className="p-1 w-[15%] md:w-20">성명</th>
-              <th className="p-1 w-[25%] md:w-32">전화번호</th>
-              <th className="p-1 w-[20%] md:w-auto">주소</th>
-              <th className="p-1 w-7 text-center">회</th>
-              <th className="p-1 w-7 text-center">출</th>
-              <th className="p-1 w-7 text-center">가</th>
-              <th className="p-1 w-16 text-center">작업</th>
+        <table className="w-full text-left border-collapse table-fixed min-w-[360px]">
+          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[9px] md:text-xs z-10">
+            <tr className="border-b border-[#3a3a5e]">
+              <th className="p-1 w-7 text-center"><input type="checkbox" className="w-3.5 h-3.5 accent-blue-500" checked={selectedIds.size === members.length && members.length > 0} onChange={toggleAll} /></th>
+              <th className="p-1 w-6 text-center">N</th>
+              <th className="p-1 w-[14%]">성명</th>
+              <th className="p-1 w-[32%] md:w-36">전화번호</th>
+              <th className="p-1 w-[16%] md:w-auto">주소</th>
+              <th className="p-1 w-6 text-center">비</th>
+              <th className="p-1 w-6 text-center">출</th>
+              <th className="p-1 w-6 text-center">가</th>
+              <th className="p-1 w-12 text-center">작업</th>
             </tr>
           </thead>
-          <tbody className="text-[11px] md:text-sm font-bold">
+          <tbody className="text-[10px] md:text-sm font-bold">
             {sortedMembers.map((m, index) => {
               const isEditing = editingId === m.id;
               return (
                 <tr key={m.id} className={`border-b border-[#2c2c2e] ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`}>
-                  <td className="p-1 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.has(m.id)} onChange={() => { const next = new Set(selectedIds); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); setSelectedIds(next); }} /></td>
+                  <td className="p-1 text-center"><input type="checkbox" className="w-3.5 h-3.5 accent-blue-500" checked={selectedIds.has(m.id)} onChange={() => { const next = new Set(selectedIds); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); setSelectedIds(next); }} /></td>
+                  <td className="p-1 text-center text-gray-600 text-[9px]">{m.sn}</td>
                   <td className="p-1 truncate">
                     {isEditing ? (
                       <input ref={index === 0 ? nameInputRef : null} className="bg-[#2c2c2e] text-white w-full outline-none border-b border-blue-500" value={m.name} onChange={(e) => updateMember(m.id, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setEditingId(null)} />
@@ -236,7 +231,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                       <span className="text-white">{m.name}</span>
                     )}
                   </td>
-                  <td className="p-1 truncate text-blue-300">
+                  <td className="p-1 truncate text-blue-300 whitespace-nowrap overflow-hidden">
                     {isEditing ? (
                       <input className="bg-[#2c2c2e] w-full outline-none border-b border-blue-500" value={m.phone} onChange={(e) => updateMember(m.id, 'phone', e.target.value)} maxLength={13} />
                     ) : (
@@ -250,13 +245,13 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                       m.address
                     )}
                   </td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded ${m.fee ? 'text-emerald-500' : 'text-gray-800'}`}><Check className="w-4 h-4" /></button></td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded ${m.attendance ? 'text-blue-500' : 'text-gray-800'}`}><Check className="w-4 h-4" /></button></td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded ${m.joined ? 'text-indigo-500' : 'text-gray-800'}`}><Check className="w-4 h-4" /></button></td>
-                  <td className="p-1 text-center">
-                    <div className="flex justify-center gap-1">
-                      <button onClick={() => setEditingId(isEditing ? null : m.id)} className="text-blue-400">{isEditing ? <Check className="w-4 h-4"/> : <Edit2 className="w-4 h-4"/>}</button>
-                      <button onClick={() => deleteMember(m.id)} className="text-red-500"><Trash2 className="w-4 h-4"/></button>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded transition-colors ${m.fee ? 'text-emerald-500' : 'text-gray-400/40'}`}><Check className="w-3.5 h-3.5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded transition-colors ${m.attendance ? 'text-blue-500' : 'text-gray-400/40'}`}><Check className="w-3.5 h-3.5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded transition-colors ${m.joined ? 'text-indigo-500' : 'text-gray-400/40'}`}><Check className="w-3.5 h-3.5" /></button></td>
+                  <td className="p-0 text-center">
+                    <div className="flex justify-center gap-1.5">
+                      <button onClick={() => setEditingId(isEditing ? null : m.id)} className="text-blue-400">{isEditing ? <Check className="w-3.5 h-3.5"/> : <Edit2 className="w-3.5 h-3.5"/>}</button>
+                      <button onClick={() => deleteMember(m.id)} className="text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
                     </div>
                   </td>
                 </tr>
