@@ -6,7 +6,7 @@ import {
 import { ko } from 'date-fns/locale';
 import { 
   ChevronLeft, ChevronRight, Copy, Trash2, MousePointer2, 
-  RotateCcw, ClipboardCheck, FileDown, FileUp 
+  RotateCcw, ClipboardCheck, FileDown, FileUp, Calendar as CalendarIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Schedule } from '../../types';
@@ -131,63 +131,77 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
       ${mode === 'copy' ? 'border-cyan-500/20' : 
         mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
     >
-      {/* Header Toolbar */}
-      <div className="relative flex items-center justify-center h-20 w-full mb-0">
-        <div className="absolute left-0 flex items-center bg-[#1a1a2e] rounded-2xl p-2 border border-[#3a3a5e] shadow-xl z-10">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-[#2c2c2e] rounded-xl"><ChevronLeft className="w-6 h-6 text-blue-400" /></button>
-          <span className="text-2xl font-black px-6 min-w-[160px] text-center tracking-tighter text-white">{format(currentMonth, 'yyyy. MM', { locale: ko })}</span>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-[#2c2c2e] rounded-xl"><ChevronRight className="w-6 h-6 text-blue-400" /></button>
-        </div>
-
-        <div className="text-center">
+      {/* 2단 대응형 모듈 타이틀바 (글자 우선, 아이콘 후순위 배열) */}
+      <div className="min-h-[80px] py-4 flex flex-wrap items-center justify-between w-full mb-0 gap-4">
+        
+        {/* LEFT: 타이틀 글자 + 모드 선택 아이콘들 */}
+        <div className="flex items-center flex-wrap gap-4">
           {isEditingTitle ? (
-            <input autoFocus className="bg-[#2c2c2e] border-2 border-blue-500 rounded-xl px-4 py-1 text-4xl font-black text-white outline-none" value={calendarTitle} onChange={(e) => setCalendarTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+            <input 
+              autoFocus 
+              className="bg-[#2c2c2e] border-2 border-blue-500 rounded-xl px-4 py-1 text-2xl md:text-4xl font-black text-white outline-none" 
+              value={calendarTitle} 
+              onChange={(e) => setCalendarTitle(e.target.value)} 
+              onBlur={() => setIsEditingTitle(false)} 
+              onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} 
+            />
           ) : (
-            <h2 className="text-4xl font-black text-white cursor-pointer hover:text-blue-400 tracking-tight" onClick={() => setIsEditingTitle(true)}>{calendarTitle}</h2>
+            <h2 className="text-2xl md:text-4xl font-black text-white cursor-pointer hover:text-blue-400 tracking-tight whitespace-nowrap" onClick={() => setIsEditingTitle(true)}>
+              {calendarTitle}
+            </h2>
           )}
-        </div>
 
-        <div className="absolute right-0 flex items-center gap-2 z-10">
-          {/* Mode Selector - 아이콘 색상 상시 유지 */}
-          <div className="flex bg-[#1a1a2e] p-1.5 rounded-2xl border border-[#3a3a5e] shadow-2xl overflow-hidden mr-2">
+          {/* 아이콘 그룹: 타이틀 뒤에 배열, 크기 최적화 */}
+          <div className="flex items-center bg-[#1a1a2e] p-1.5 rounded-2xl border border-[#3a3a5e] shadow-2xl overflow-hidden">
             <button 
               onClick={() => { setMode('normal'); setClipboard([]); }} 
-              className={`p-3 rounded-xl transition-all ${mode === 'normal' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}
+              className={`p-2 md:p-2.5 rounded-xl transition-all ${mode === 'normal' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}
             >
-              <MousePointer2 className="w-6 h-6 text-amber-400" />
+              <MousePointer2 className="w-5 h-5 md:w-6 md:h-6 text-amber-400" />
             </button>
             <button 
               onClick={() => setMode('copy')} 
-              className={`p-3 rounded-xl transition-all ${mode === 'copy' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}
+              className={`p-2 md:p-2.5 rounded-xl transition-all ${mode === 'copy' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}
             >
-              <Copy className="w-6 h-6 text-cyan-400" />
+              <Copy className="w-5 h-5 md:w-6 md:h-6 text-cyan-400" />
             </button>
             <button 
               onClick={() => setMode('delete')} 
-              className={`p-3 rounded-xl transition-all ${mode === 'delete' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}
+              className={`p-2 md:p-2.5 rounded-xl transition-all ${mode === 'delete' ? 'bg-[#2c2c2e]' : 'hover:bg-[#2c2c2e]/50'}`}
             >
-              <Trash2 className="w-6 h-6 text-rose-500" />
+              <Trash2 className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
             </button>
           </div>
-
-          <button onClick={handleUndo} className="p-3 bg-[#2c2c2e] border border-[#3a3a5e] rounded-xl shadow-lg hover:bg-[#3a3a5e] transition-all text-emerald-400">
+          
+          {/* Undo 버튼 (아이콘 그룹 뒤에 배치) */}
+          <button onClick={handleUndo} className="p-2 md:p-2.5 bg-[#1a1a2e] border border-[#3a3a5e] rounded-2xl shadow-lg hover:bg-[#3a3a5e] transition-all text-emerald-400">
             <div className="relative">
-              <RotateCcw className="w-6 h-6" />
-              {undoStack.length > 0 && <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">{undoStack.length}</span>}
+              <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
+              {undoStack.length > 0 && <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[9px] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center font-black">{undoStack.length}</span>}
             </div>
           </button>
+        </div>
 
-          <button onClick={exportToExcel} className="p-3 bg-emerald-700 rounded-xl hover:bg-emerald-600 shadow-lg" title="월간 저장">
-            <FileDown className="w-6 h-6" />
+        {/* RIGHT: 날짜 조작부 + 엑셀 버튼 */}
+        <div className="flex items-center flex-wrap gap-2 shrink-0">
+          <div className="flex items-center bg-[#1a1a2e] rounded-2xl p-1.5 border border-[#3a3a5e] shadow-xl">
+            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded-xl"><ChevronLeft className="w-5 h-5 text-blue-400" /></button>
+            <span className="text-sm md:text-lg font-black px-4 min-w-[100px] md:min-w-[130px] text-center tracking-tighter text-white">{format(currentMonth, 'yyyy. MM', { locale: ko })}</span>
+            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded-xl"><ChevronRight className="w-5 h-5 text-blue-400" /></button>
+          </div>
+
+          <button onClick={exportToExcel} className="p-2.5 md:p-3 bg-emerald-700 rounded-xl hover:bg-emerald-600 shadow-lg text-white" title="월간 저장">
+            <FileDown className="w-5 h-5 md:w-6 md:h-6" />
           </button>
-          <label className="p-3 bg-[#2c2c2e] border border-[#3a3a5e] rounded-xl cursor-pointer hover:bg-[#3a3a5e]" title="엑셀 업로드">
-            <FileUp className="w-6 h-6 text-emerald-400" />
+          <label className="p-2.5 md:p-3 bg-[#1a1a2e] border border-[#3a3a5e] rounded-xl cursor-pointer hover:bg-[#3a3a5e]" title="엑셀 업로드">
+            <FileUp className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
             <input type="file" ref={fileInputRef} onChange={importFromExcel} accept=".xlsx, .xls" className="hidden" />
           </label>
         </div>
       </div>
 
-      <div className="flex-grow grid grid-cols-7 gap-3 mt-4">
+      {/* 캘린더 그리드 */}
+      <div className="flex-grow grid grid-cols-7 gap-3 mt-4 overflow-auto">
         {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
           <div key={day} className="text-center font-black py-2 text-lg" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
         ))}
