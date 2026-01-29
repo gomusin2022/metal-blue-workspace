@@ -66,9 +66,9 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-1 text-gray-200 overflow-hidden">
+    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-1 text-gray-200 overflow-hidden font-sans">
       
-      {/* 상단 타이틀바: 회원 관리 모드 규격과 100% 일치 */}
+      {/* 상단 타이틀바: 회원 관리 모드와 여백 및 규격 완전 동기화 */}
       <div className="flex flex-col w-full mb-1.5">
         <div className="flex items-center justify-between w-full h-9">
           <div className="flex-1 overflow-hidden">
@@ -91,11 +91,12 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             )}
           </div>
           
-          <div className="flex bg-[#1a1a2e] p-0.5 rounded-lg border border-[#3a3a5e] shadow-lg shrink-0 scale-90 origin-right">
-            <button onClick={onExport} className="p-1 text-emerald-400 hover:bg-[#2c2c2e] rounded transition-colors" title="엑셀 내보내기">
+          {/* 우측 아이콘 그룹: scale-90 제거 및 p-1 / rounded-xl 적용 (회원 모드와 동일) */}
+          <div className="flex bg-[#1a1a2e] p-1 rounded-xl border border-[#3a3a5e] shadow-lg shrink-0 transition-all">
+            <button onClick={onExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded-lg transition-colors" title="엑셀 내보내기">
               <FileDown className="w-5 h-5" />
             </button>
-            <button onClick={() => fileRef.current?.click()} className="p-1 text-blue-400 hover:bg-[#2c2c2e] rounded transition-colors" title="엑셀 가져오기">
+            <button onClick={() => fileRef.current?.click()} className="p-1.5 text-blue-400 hover:bg-[#2c2c2e] rounded-lg transition-colors" title="엑셀 가져오기">
               <FileUp className="w-5 h-5" />
             </button>
             <input type="file" ref={fileRef} onChange={onImport} className="hidden" accept=".xlsx,.xls" />
@@ -104,7 +105,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
       </div>
 
       <div className="flex-grow overflow-y-auto space-y-4 px-1 mt-2 custom-scrollbar">
-        {/* 신규 입력 섹션: 기록/비움 버튼 40% 축소 적용 */}
+        {/* 신규 입력 섹션: 기록/비움 버튼 40% 축소 */}
         <div className="flex items-start gap-3 w-full bg-[#252535] border border-gray-700 rounded-2xl p-4 shadow-inner">
           <div className="flex-grow">
             <textarea 
@@ -115,20 +116,20 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             />
           </div>
           <div className="flex flex-col gap-2 shrink-0">
-            {/* 기존 w-24에서 40% 축소된 콤팩트 버튼 */}
-            <button onClick={handleSave} className="w-14 h-14 bg-emerald-600 text-white rounded-xl font-black shadow-lg active:scale-95 flex flex-col items-center justify-center transition-all">
+            {/* 콤팩트 버튼: w-14 h-14 규격 */}
+            <button onClick={handleSave} className="w-14 h-14 bg-emerald-600 text-white rounded-xl font-black shadow-lg active:scale-95 flex flex-col items-center justify-center transition-all group">
               <Save className="w-5 h-5" />
               <span className="text-[10px]">기록</span>
             </button>
-            <button onClick={() => setNewInput('')} className="w-14 h-8 bg-gray-800 text-gray-500 rounded-lg font-bold text-[10px] flex items-center justify-center">
+            <button onClick={() => setNewInput('')} className="w-14 h-8 bg-gray-800 text-gray-500 rounded-lg font-bold text-[10px] flex items-center justify-center hover:text-white transition-colors">
               <Eraser className="w-3.5 h-3.5 mr-1" /> 비움
             </button>
           </div>
         </div>
 
-        {/* 기존 데이터 리스트: 버튼 부피 축소 및 레이아웃 정돈 */}
+        {/* 기존 데이터 리스트 */}
         {notes.map(note => (
-          <div key={note.id} className="flex items-start gap-3 w-full bg-[#1a1a2e] border border-gray-800 rounded-2xl p-4 shadow-lg transition-all">
+          <div key={note.id} className="flex items-start gap-3 w-full bg-[#1a1a2e] border border-gray-800 rounded-2xl p-4 shadow-lg transition-all hover:border-gray-600">
             <div className="flex-grow min-h-[40px] cursor-text" onClick={() => { setEditingId(note.id); setEditBuffer(note.content); }}>
               {editingId === note.id ? (
                 <textarea 
