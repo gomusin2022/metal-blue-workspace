@@ -18,7 +18,7 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
   );
   const [error, setError] = useState<{ id: string; message: string } | null>(null);
 
-  /** 시간 문자열을 분 단위 숫자로 변환 (계산용) */
+  /** 시간 문자열을 분 단위 숫자로 변환 */
   const parseTime = (timeStr: string) => {
     const [h, m] = timeStr.split(':').map(Number);
     return {
@@ -43,7 +43,7 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
     return `${h24.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   };
 
-  /** 시작 시간 변경 시 종료 시간 무조건 1시간 후로 강제 동기화 */
+  /** 시작 시간 변경 시 종료 시간 1시간 후로 동기화 */
   const handleStartTimeChange = (id: string, p: string, h: number, m: number) => {
     const newStartTime = buildTimeFromParts(p, h, m);
     const startObj = parseTime(newStartTime);
@@ -69,11 +69,9 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
     setLocalSchedules(newList);
   };
 
-  /** 일정 추가 시 마지막 종료 시간을 시작 시간으로 제안 */
   const handleAddSchedule = () => {
     const newId = crypto.randomUUID();
     let nextStart = '09:00'; 
-    
     if (localSchedules.length > 0) {
       const sorted = [...localSchedules].sort((a, b) => {
         const timeA = a.endTime === '00:00' ? 1440 : parseTime(a.endTime).totalMinutes;
@@ -83,44 +81,21 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
       nextStart = sorted[sorted.length - 1].endTime;
       if (nextStart === '00:00') nextStart = '09:00';
     }
-    
     const startObj = parseTime(nextStart);
     const nextEnd = buildTimeFromMinutes(startObj.totalMinutes + 60);
-
-    setLocalSchedules([...localSchedules, { 
-      id: newId, 
-      date: dateStr, 
-      startTime: nextStart, 
-      endTime: nextEnd, 
-      title: '' 
-    }]);
+    setLocalSchedules([...localSchedules, { id: newId, date: dateStr, startTime: nextStart, endTime: nextEnd, title: '' }]);
     setEditingId(newId);
   };
 
   const handleConfirm = (id: string) => {
     const current = localSchedules.find(s => s.id === id);
     if (!current) return;
-
     const startVal = parseTime(current.startTime).totalMinutes;
     let endVal = parseTime(current.endTime).totalMinutes;
     if (endVal === 0) endVal = 1440;
-
-    if (startVal >= endVal) {
-      setError({ id, message: "종료 시간은 시작 시간보다 늦어야 합니다." });
-      return;
-    }
-    
-    const hasOverlap = localSchedules.some(other => 
-      other.id !== id && 
-      startVal < (other.endTime === '00:00' ? 1440 : parseTime(other.endTime).totalMinutes) && 
-      endVal > parseTime(other.startTime).totalMinutes
-    );
-
-    if (hasOverlap) {
-      setError({ id, message: "시간이 다른 일정과 겹칩니다." });
-      return;
-    }
-
+    if (startVal >= endVal) { setError({ id, message: "종료 시간은 시작 시간보다 늦어야 합니다." }); return; }
+    const hasOverlap = localSchedules.some(other => other.id !== id && startVal < (other.endTime === '00:00' ? 1440 : parseTime(other.endTime).totalMinutes) && endVal > parseTime(other.startTime).totalMinutes);
+    if (hasOverlap) { setError({ id, message: "시간이 다른 일정과 겹칩니다." }); return; }
     setEditingId(null);
     onSave([...schedules.filter(s => s.date !== dateStr), ...localSchedules]);
   };
@@ -142,33 +117,33 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
           return (
             <div key={s.id} className={`p-4 md:p-6 rounded-3xl border transition-all duration-500 ${isEditing ? 'bg-[#1e1e3e] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'bg-[#1a1a2e] border-[#3a3a5e]'}`}>
               
-              {/* 상단: 시간 정보 및 수정 버튼 */}
-              <div className="flex justify-between items-start mb-4 gap-2">
-                <div className="flex flex-col gap-2">
+              {/* 상단 줄: 시간 입력(좌) + 저장/취소/수정/삭제 버튼(우) */}
+              <div className="flex justify-between items-center mb-4 gap-2 h-fit">
+                <div className="flex flex-col">
                   {isEditing ? (
-                    <div className="flex flex-wrap items-center gap-2 bg-[#0f0f1a] p-3 rounded-2xl border border-blue-900/50 w-fit scale-90 md:scale-100 origin-left">
+                    <div className="flex flex-wrap items-center gap-2 bg-[#0f0f1a] p-2 md:p-3 rounded-2xl border border-blue-900/50 w-fit scale-90 md:scale-100 origin-left">
                       <div className="flex items-center gap-1">
-                        <select value={start.period} onChange={(e) => handleStartTimeChange(s.id, e.target.value, start.hour, start.minute)} className="bg-transparent text-blue-400 font-bold outline-none cursor-pointer text-sm md:text-base">
+                        <select value={start.period} onChange={(e) => handleStartTimeChange(s.id, e.target.value, start.hour, start.minute)} className="bg-transparent text-blue-400 font-bold outline-none text-sm md:text-base cursor-pointer">
                           <option value="오전" className="bg-[#1a1a2e] text-white">오전</option>
                           <option value="오후" className="bg-[#1a1a2e] text-white">오후</option>
                         </select>
-                        <select value={start.hour} onChange={(e) => handleStartTimeChange(s.id, start.period, Number(e.target.value), start.minute)} className="bg-transparent text-white font-bold outline-none cursor-pointer text-sm md:text-base">
+                        <select value={start.hour} onChange={(e) => handleStartTimeChange(s.id, start.period, Number(e.target.value), start.minute)} className="bg-transparent text-white font-bold outline-none text-sm md:text-base cursor-pointer">
                           {[...Array(12)].map((_, i) => <option key={i+1} value={i+1} className="bg-[#1a1a2e] text-white">{i+1}시</option>)}
                         </select>
-                        <select value={start.minute} onChange={(e) => handleStartTimeChange(s.id, start.period, start.hour, Number(e.target.value))} className="bg-transparent text-white font-bold outline-none cursor-pointer text-sm md:text-base">
+                        <select value={start.minute} onChange={(e) => handleStartTimeChange(s.id, start.period, start.hour, Number(e.target.value))} className="bg-transparent text-white font-bold outline-none text-sm md:text-base cursor-pointer">
                           {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m} className="bg-[#1a1a2e] text-white">{m.toString().padStart(2, '0')}분</option>)}
                         </select>
                       </div>
                       <span className="text-gray-700 font-black">→</span>
                       <div className="flex items-center gap-1">
-                        <select value={end.period} onChange={(e) => handleEndTimeChange(s.id, e.target.value, end.hour, end.minute)} className="bg-transparent text-emerald-400 font-bold outline-none cursor-pointer text-sm md:text-base">
+                        <select value={end.period} onChange={(e) => handleEndTimeChange(s.id, e.target.value, end.hour, end.minute)} className="bg-transparent text-emerald-400 font-bold outline-none text-sm md:text-base cursor-pointer">
                           <option value="오전" className="bg-[#1a1a2e] text-white">오전</option>
                           <option value="오후" className="bg-[#1a1a2e] text-white">오후</option>
                         </select>
-                        <select value={end.hour} onChange={(e) => handleEndTimeChange(s.id, end.period, Number(e.target.value), end.minute)} className="bg-transparent text-white font-bold outline-none cursor-pointer text-sm md:text-base">
+                        <select value={end.hour} onChange={(e) => handleEndTimeChange(s.id, end.period, Number(e.target.value), end.minute)} className="bg-transparent text-white font-bold outline-none text-sm md:text-base cursor-pointer">
                           {[...Array(12)].map((_, i) => <option key={i+1} value={i+1} className="bg-[#1a1a2e] text-white">{i+1}시</option>)}
                         </select>
-                        <select value={end.minute} onChange={(e) => handleEndTimeChange(s.id, end.period, end.hour, Number(e.target.value))} className="bg-transparent text-white font-bold outline-none cursor-pointer text-sm md:text-base">
+                        <select value={end.minute} onChange={(e) => handleEndTimeChange(s.id, end.period, end.hour, Number(e.target.value))} className="bg-transparent text-white font-bold outline-none text-sm md:text-base cursor-pointer">
                           {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m} className="bg-[#1a1a2e] text-white">{m.toString().padStart(2, '0')}분</option>)}
                         </select>
                       </div>
@@ -179,48 +154,41 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
                     </div>
                   )}
                   {error?.id === s.id && (
-                    <div className="flex items-center text-red-400 text-xs font-bold px-1 animate-pulse">
+                    <div className="flex items-center text-red-400 text-xs font-bold px-1 animate-pulse mt-1">
                       <AlertCircle className="w-3 h-3 mr-1" /> {error.message}
                     </div>
                   )}
                 </div>
 
-                {/* 편집 중이 아닐 때만 편집/삭제 버튼 노출 */}
-                {!isEditing && (
-                  <div className="flex gap-2 shrink-0">
-                    <button onClick={() => setEditingId(s.id)} className="p-3 bg-blue-900/30 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-5 h-5 md:w-6 md:h-6"/></button>
-                    <button onClick={() => { if(confirm("일정을 삭제할까요?")) { const newList = localSchedules.filter(ls => ls.id !== s.id); setLocalSchedules(newList); onSave([...schedules.filter(sc => sc.date !== dateStr), ...newList]); } }} className="p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-5 h-5 md:w-6 md:h-6"/></button>
-                  </div>
-                )}
-              </div>
-
-              {/* 하단: 내용 입력창 및 조작 버튼 (편집 모드 시) */}
-              <div className="w-full flex gap-3">
-                <div className="flex-grow">
+                {/* 우측 조작 버튼 그룹 (시간 옆) */}
+                <div className="flex gap-1.5 md:gap-2 shrink-0">
                   {isEditing ? (
-                    <textarea 
-                      autoFocus 
-                      className="w-full bg-[#2c2c2e] p-3 md:p-4 rounded-2xl outline-none border-2 border-blue-500 font-bold text-white text-base md:text-xl shadow-inner min-h-[100px] resize-none" 
-                      value={s.title} 
-                      onChange={(e) => handleUpdateField(s.id, 'title', e.target.value)} 
-                      placeholder="일정 내용을 입력하세요..." 
-                    />
+                    <>
+                      <button onClick={() => handleConfirm(s.id)} className="p-2.5 md:p-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-500 transition-all"><Check className="w-5 h-5 md:w-6 md:h-6"/></button>
+                      <button onClick={() => { setLocalSchedules(schedules.filter(sc => sc.date === dateStr)); setEditingId(null); setError(null); }} className="p-2.5 md:p-3 bg-gray-700 text-gray-300 rounded-xl hover:bg-gray-600 transition-all"><RotateCcw className="w-5 h-5 md:w-6 md:h-6"/></button>
+                    </>
                   ) : (
-                    <div className="text-xl md:text-3xl font-black text-white px-1 whitespace-pre-wrap leading-tight tracking-tight">
-                      {s.title || '제목 없음'}
-                    </div>
+                    <>
+                      <button onClick={() => setEditingId(s.id)} className="p-2.5 md:p-3 bg-blue-900/30 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-5 h-5 md:w-6 md:h-6"/></button>
+                      <button onClick={() => { if(confirm("일정을 삭제할까요?")) { const newList = localSchedules.filter(ls => ls.id !== s.id); setLocalSchedules(newList); onSave([...schedules.filter(sc => sc.date !== dateStr), ...newList]); } }} className="p-2.5 md:p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-5 h-5 md:w-6 md:h-6"/></button>
+                    </>
                   )}
                 </div>
+              </div>
 
-                {/* 편집 모드일 때만 저장/취소 버튼을 2단 세로로 노출 */}
-                {isEditing && (
-                  <div className="flex flex-col gap-2 shrink-0 h-fit">
-                    <button onClick={() => handleConfirm(s.id)} className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg hover:bg-blue-500 active:scale-95 transition-all" title="저장">
-                      <Check className="w-7 h-7"/>
-                    </button>
-                    <button onClick={() => { setLocalSchedules(schedules.filter(sc => sc.date === dateStr)); setEditingId(null); setError(null); }} className="p-4 bg-gray-700 text-gray-300 rounded-2xl hover:bg-gray-600 active:scale-95 transition-all" title="취소">
-                      <RotateCcw className="w-7 h-7"/>
-                    </button>
+              {/* 하단 줄: 제목 입력창 (가로 전체 활용) */}
+              <div className="w-full">
+                {isEditing ? (
+                  <textarea 
+                    autoFocus 
+                    className="w-full bg-[#2c2c2e] p-3 md:p-4 rounded-2xl outline-none border-2 border-blue-500 font-bold text-white text-base md:text-xl shadow-inner min-h-[100px] resize-none" 
+                    value={s.title} 
+                    onChange={(e) => handleUpdateField(s.id, 'title', e.target.value)} 
+                    placeholder="일정 내용을 입력하세요..." 
+                  />
+                ) : (
+                  <div className="text-xl md:text-3xl font-black text-white px-1 whitespace-pre-wrap leading-tight tracking-tight min-h-[40px]">
+                    {s.title || '제목 없음'}
                   </div>
                 )}
               </div>
@@ -228,12 +196,14 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
           );
         })}
 
+        {/* 일정 추가 버튼 */}
         <div onClick={handleAddSchedule} className="p-8 md:p-12 border-2 border-dashed border-[#2c2c2e] rounded-[2rem] flex items-center justify-center text-gray-500 cursor-pointer hover:bg-[#1a1a2e] hover:border-blue-500/50 transition-all group">
           <Plus className="w-8 h-8 md:w-10 md:h-10 mr-2 md:mr-4 group-hover:scale-125 group-hover:text-blue-500 transition-all" />
           <span className="font-bold text-lg md:text-2xl tracking-tighter text-center">새로운 일정을 추가하려면 터치하세요</span>
         </div>
       </div>
 
+      {/* 돌아가기 버튼 */}
       <div className="mt-6 flex justify-center border-t border-[#3a3a5e] pt-6">
         <button onClick={onBack} className="flex items-center px-10 md:px-16 py-4 md:py-6 bg-[#212121] rounded-3xl font-black text-xl md:text-2xl hover:bg-[#2c2c2e] text-gray-400 transition-all active:scale-95 shadow-2xl border border-white/5">
           <ChevronLeft className="w-6 h-6 md:w-9 md:h-9 mr-1" /> 돌아가기
