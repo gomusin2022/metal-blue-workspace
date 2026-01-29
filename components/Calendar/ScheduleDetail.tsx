@@ -142,7 +142,7 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
           return (
             <div key={s.id} className={`p-4 md:p-6 rounded-3xl border transition-all duration-500 ${isEditing ? 'bg-[#1e1e3e] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'bg-[#1a1a2e] border-[#3a3a5e]'}`}>
               
-              {/* 시간 및 버튼 영역 */}
+              {/* 상단: 시간 정보 및 수정 버튼 */}
               <div className="flex justify-between items-start mb-4 gap-2">
                 <div className="flex flex-col gap-2">
                   {isEditing ? (
@@ -185,33 +185,42 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ selectedDate, schedules
                   )}
                 </div>
 
-                {/* 버튼 2x2 배치 (우측 상단 고정) */}
-                <div className="grid grid-cols-2 gap-1 shrink-0">
-                  {isEditing ? (
-                    <>
-                      <button onClick={() => handleConfirm(s.id)} className="p-2 md:p-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-500 active:scale-95 transition-all"><Check className="w-5 h-5 md:w-6 md:h-6"/></button>
-                      <button onClick={() => { setLocalSchedules(schedules.filter(sc => sc.date === dateStr)); setEditingId(null); setError(null); }} className="p-2 md:p-3 bg-gray-700 text-gray-300 rounded-xl hover:bg-gray-600 active:scale-95 transition-all"><RotateCcw className="w-5 h-5 md:w-6 md:h-6"/></button>
-                    </>
-                  ) : (
-                    <button onClick={() => setEditingId(s.id)} className="p-2 md:p-3 bg-blue-900/30 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white active:scale-95 transition-all col-span-1"><Edit2 className="w-5 h-5 md:w-6 md:h-6"/></button>
-                  )}
-                  <button onClick={() => { if(confirm("일정을 삭제할까요?")) { const newList = localSchedules.filter(ls => ls.id !== s.id); setLocalSchedules(newList); onSave([...schedules.filter(sc => sc.date !== dateStr), ...newList]); } }} className="p-2 md:p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white active:scale-95 transition-all"><Trash2 className="w-5 h-5 md:w-6 md:h-6"/></button>
-                </div>
+                {/* 편집 중이 아닐 때만 편집/삭제 버튼 노출 */}
+                {!isEditing && (
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => setEditingId(s.id)} className="p-3 bg-blue-900/30 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-5 h-5 md:w-6 md:h-6"/></button>
+                    <button onClick={() => { if(confirm("일정을 삭제할까요?")) { const newList = localSchedules.filter(ls => ls.id !== s.id); setLocalSchedules(newList); onSave([...schedules.filter(sc => sc.date !== dateStr), ...newList]); } }} className="p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-5 h-5 md:w-6 md:h-6"/></button>
+                  </div>
+                )}
               </div>
 
-              {/* 입력 영역: input -> textarea로 변경하여 줄바꿈 지원 */}
-              <div className="w-full">
-                {isEditing ? (
-                  <textarea 
-                    autoFocus 
-                    className="w-full bg-[#2c2c2e] p-3 md:p-4 rounded-2xl outline-none border-2 border-blue-500 font-bold text-white text-base md:text-xl shadow-inner min-h-[100px] resize-none" 
-                    value={s.title} 
-                    onChange={(e) => handleUpdateField(s.id, 'title', e.target.value)} 
-                    placeholder="일정 내용을 입력하세요..." 
-                  />
-                ) : (
-                  <div className="text-xl md:text-3xl font-black text-white px-1 whitespace-pre-wrap leading-tight tracking-tight">
-                    {s.title || '제목 없음'}
+              {/* 하단: 내용 입력창 및 조작 버튼 (편집 모드 시) */}
+              <div className="w-full flex gap-3">
+                <div className="flex-grow">
+                  {isEditing ? (
+                    <textarea 
+                      autoFocus 
+                      className="w-full bg-[#2c2c2e] p-3 md:p-4 rounded-2xl outline-none border-2 border-blue-500 font-bold text-white text-base md:text-xl shadow-inner min-h-[100px] resize-none" 
+                      value={s.title} 
+                      onChange={(e) => handleUpdateField(s.id, 'title', e.target.value)} 
+                      placeholder="일정 내용을 입력하세요..." 
+                    />
+                  ) : (
+                    <div className="text-xl md:text-3xl font-black text-white px-1 whitespace-pre-wrap leading-tight tracking-tight">
+                      {s.title || '제목 없음'}
+                    </div>
+                  )}
+                </div>
+
+                {/* 편집 모드일 때만 저장/취소 버튼을 2단 세로로 노출 */}
+                {isEditing && (
+                  <div className="flex flex-col gap-2 shrink-0 h-fit">
+                    <button onClick={() => handleConfirm(s.id)} className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg hover:bg-blue-500 active:scale-95 transition-all" title="저장">
+                      <Check className="w-7 h-7"/>
+                    </button>
+                    <button onClick={() => { setLocalSchedules(schedules.filter(sc => sc.date === dateStr)); setEditingId(null); setError(null); }} className="p-4 bg-gray-700 text-gray-300 rounded-2xl hover:bg-gray-600 active:scale-95 transition-all" title="취소">
+                      <RotateCcw className="w-7 h-7"/>
+                    </button>
                   </div>
                 )}
               </div>
