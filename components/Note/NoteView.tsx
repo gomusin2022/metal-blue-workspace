@@ -34,21 +34,39 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
     }
   };
 
+  // 회원 관리 모드와 동일하게 합치기/덮어쓰기 로직 적용
   const onImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+
+    // 사용자 선택 확인
+    const isAppend = window.confirm("합치기(확인) / 덮어쓰기(취소)를 선택해주세요.");
+
     const r = new FileReader();
     r.onload = (ev) => {
-      const data = XLSX.read(ev.target?.result, { type: 'binary' });
-      const rows = XLSX.utils.sheet_to_json(data.Sheets[data.SheetNames[0]]) as any[];
-      setNotes(prev => [...rows.map(r => ({ 
-        id: crypto.randomUUID(), 
-        content: String(r['내용'] || ''), 
-        createdAt: String(r['시간'] || format(new Date(), 'yyyy-MM-dd HH:mm:ss')) 
-      })), ...prev]);
+      try {
+        const data = XLSX.read(ev.target?.result, { type: 'binary' });
+        const rows = XLSX.utils.sheet_to_json(data.Sheets[data.SheetNames[0]]) as any[];
+        
+        const importedData: Note[] = rows.map(r => ({ 
+          id: crypto.randomUUID(), 
+          content: String(r['내용'] || r['content'] || ''), 
+          createdAt: String(r['시간'] || r['createdAt'] || format(new Date(), 'yyyy-MM-dd HH:mm:ss')) 
+        }));
+
+        if (isAppend) {
+          // 합치기: 기존 데이터 상단에 추가
+          setNotes(prev => [...importedData, ...prev]);
+        } else {
+          // 덮어쓰기: 기존 데이터 삭제 후 교체
+          setNotes(importedData);
+        }
+      } catch (error) {
+        alert("엑셀 파일 읽기 중 오류가 발생했습니다.");
+      }
     };
     r.readAsBinaryString(f);
-    e.target.value = '';
+    e.target.value = ''; // 파일 선택 초기화
   };
 
   const autoResize = (target: HTMLTextAreaElement) => {
@@ -68,7 +86,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
   return (
     <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-1 text-gray-200 overflow-hidden font-sans">
       
-      {/* 상단 타이틀바: 회원 관리 모드와 여백 및 규격 완전 동기화 */}
+      {/* 상단 타이틀바 (회원 모드와 규격 일치) */}
       <div className="flex flex-col w-full mb-1.5">
         <div className="flex items-center justify-between w-full h-9">
           <div className="flex-1 overflow-hidden">
@@ -91,7 +109,6 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             )}
           </div>
           
-          {/* 우측 아이콘 그룹: scale-90 제거 및 p-1 / rounded-xl 적용 (회원 모드와 동일) */}
           <div className="flex bg-[#1a1a2e] p-1 rounded-xl border border-[#3a3a5e] shadow-lg shrink-0 transition-all">
             <button onClick={onExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded-lg transition-colors" title="엑셀 내보내기">
               <FileDown className="w-5 h-5" />
@@ -105,7 +122,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
       </div>
 
       <div className="flex-grow overflow-y-auto space-y-4 px-1 mt-2 custom-scrollbar">
-        {/* 신규 입력 섹션: 기록/비움 버튼 40% 축소 */}
+        {/* 신규 입력 섹션: 기록/비움 아이콘 40% 축소 */}
         <div className="flex items-start gap-3 w-full bg-[#252535] border border-gray-700 rounded-2xl p-4 shadow-inner">
           <div className="flex-grow">
             <textarea 
@@ -116,8 +133,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             />
           </div>
           <div className="flex flex-col gap-2 shrink-0">
-            {/* 콤팩트 버튼: w-14 h-14 규격 */}
-            <button onClick={handleSave} className="w-14 h-14 bg-emerald-600 text-white rounded-xl font-black shadow-lg active:scale-95 flex flex-col items-center justify-center transition-all group">
+            <button onClick={handleSave} className="w-14 h-14 bg-emerald-600 text-white rounded-xl font-black shadow-lg active:scale-95 flex flex-col items-center justify-center transition-all">
               <Save className="w-5 h-5" />
               <span className="text-[10px]">기록</span>
             </button>
