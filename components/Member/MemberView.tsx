@@ -1,5 +1,8 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { UserPlus, FileDown, FileUp, Image as ImageIcon, Trash2, Edit2, Check, Loader2, Filter, Eraser, SendHorizontal } from 'lucide-react';
+import { 
+  UserPlus, FileDown, FileUp, Image as ImageIcon, Trash2, Edit2, Check, 
+  Loader2, Filter, Eraser, SendHorizontal, Users, CheckCircle2 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { Member } from '../../types';
 import { exportToExcel, readExcel } from '../../services/excelService';
@@ -146,14 +149,14 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   };
 
   const sortButtons = [
-    { label: '이름', key: 'name' },
-    { label: '가입', key: 'joined' },
-    { label: '회비', key: 'fee' },
-    { label: '출결', key: 'attendance' },
+    { label: '이름순', key: 'name' },
+    { label: '가입순', key: 'joined' },
+    { label: '회비순', key: 'fee' },
+    { label: '출결순', key: 'attendance' },
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] p-4 text-gray-200">
+    <div className="flex flex-col h-full bg-[#121212] p-4 md:p-6 pt-2 text-gray-200">
       {isLoading && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col items-center justify-center backdrop-blur-lg">
           <Loader2 className="w-20 h-20 text-blue-500 animate-spin mb-4" />
@@ -161,40 +164,83 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       )}
 
-      {/* Header Toolbar - mb-0으로 여백 제거 */}
-      <div className="relative flex items-center justify-center h-20 w-full mb-0">
-        <div className="text-center">
-          {isEditingTitle ? (
-            <input autoFocus className="bg-[#2c2c2e] border-2 border-blue-500 rounded-lg px-4 py-1 text-2xl font-black text-white outline-none" value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
-          ) : (
-            <h2 className="text-3xl md:text-4xl font-black text-white cursor-pointer hover:text-blue-400" onClick={() => setIsEditingTitle(true)}>{memberTitle}</h2>
-          )}
+      {/* 2단 고정 타이틀바 영역 */}
+      <div className="flex flex-col w-full gap-4 mb-4">
+        
+        {/* 첫째줄: 타이틀(좌) + 아이콘 5개(우) */}
+        <div className="flex items-center justify-between w-full h-12">
+          <div className="flex-1 flex justify-start overflow-hidden">
+            {isEditingTitle ? (
+              <input 
+                autoFocus 
+                className="bg-[#2c2c2e] border-2 border-blue-500 rounded-lg px-4 py-1 text-xl md:text-3xl font-black text-white outline-none w-full max-w-md" 
+                value={memberTitle} 
+                onChange={(e) => setMemberTitle(e.target.value)} 
+                onBlur={() => setIsEditingTitle(false)} 
+                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} 
+              />
+            ) : (
+              <h2 className="text-xl md:text-3xl font-black text-white cursor-pointer hover:text-blue-400 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis" onClick={() => setIsEditingTitle(true)}>
+                {memberTitle}
+              </h2>
+            )}
+          </div>
+
+          {/* 달력 모듈 아이콘 크기(w-5)에 맞춘 버튼 그룹 */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex bg-[#1a1a2e] p-1 rounded-xl border border-[#3a3a5e] shadow-xl">
+              <button onClick={handleClearAll} className="p-1.5 hover:bg-[#2c2c2e] rounded-lg transition-all text-red-500" title="목록 초기화"><Eraser className="w-5 h-5" /></button>
+              <button onClick={addMember} className="p-1.5 hover:bg-[#2c2c2e] rounded-lg transition-all text-blue-500" title="회원추가"><UserPlus className="w-5 h-5" /></button>
+              <button onClick={handleExport} className="p-1.5 hover:bg-[#2c2c2e] rounded-lg transition-all text-emerald-400" title="엑셀저장"><FileDown className="w-5 h-5" /></button>
+              <label className="p-1.5 hover:bg-[#2c2c2e] rounded-lg transition-all text-emerald-500 cursor-pointer" title="엑셀업로드">
+                <FileUp className="w-5 h-5" />
+                <input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => { const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; readExcel(e.target.files![0]).then(d => processImportedData(d, mode)); e.target.value=''; }} />
+              </label>
+              <label className="p-1.5 hover:bg-[#2c2c2e] rounded-lg transition-all text-blue-400 cursor-pointer" title="이미지읽기">
+                <ImageIcon className="w-5 h-5" />
+                <input type="file" className="hidden" accept="image/*" ref={fileInputRef} onChange={(e) => { const file = e.target.files![0]; if(!file) return; const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; setIsLoading(true); const reader = new FileReader(); reader.onload = async (ev) => { const base64 = (ev.target?.result as string).split(',')[1]; try { const ext = await extractMembersFromImage(base64, file.type); processImportedData(ext, mode); } catch { alert("에러"); } finally { setIsLoading(false); } }; reader.readAsDataURL(file); e.target.value=''; }} />
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div className="absolute right-0 flex gap-2">
-          <button onClick={handleClearAll} title="목록 초기화" className="p-3 bg-red-900/40 border border-red-500/50 rounded-xl hover:bg-red-800 shadow-lg text-red-400"><Eraser className="w-6 h-6" /></button>
-          <button onClick={addMember} title="회원추가" className="p-3 bg-blue-600 rounded-xl hover:bg-blue-500 shadow-lg"><UserPlus className="w-6 h-6" /></button>
-          <button onClick={handleExport} title="엑셀저장" className="p-3 bg-emerald-700 rounded-xl hover:bg-emerald-600 shadow-lg"><FileDown className="w-6 h-6" /></button>
-          <label title="엑셀업로드" className="p-3 bg-[#2c2c2e] border border-[#3a3a5e] rounded-xl cursor-pointer hover:bg-[#3a3a5e]"><FileUp className="w-6 h-6 text-emerald-400" /><input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => { const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; readExcel(e.target.files![0]).then(d => processImportedData(d, mode)); e.target.value=''; }} /></label>
-          <label title="이미지읽기" className="p-3 bg-[#2c2c2e] border border-[#3a3a5e] rounded-xl cursor-pointer hover:bg-[#3a3a5e]"><ImageIcon className="w-6 h-6 text-blue-400" /><input type="file" className="hidden" accept="image/*" ref={fileInputRef} onChange={(e) => { const file = e.target.files![0]; if(!file) return; const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; setIsLoading(true); const reader = new FileReader(); reader.onload = async (ev) => { const base64 = (ev.target?.result as string).split(',')[1]; try { const ext = await extractMembersFromImage(base64, file.type); processImportedData(ext, mode); } catch { alert("에러"); } finally { setIsLoading(false); } }; reader.readAsDataURL(file); e.target.value=''; }} /></label>
+        {/* 둘째줄: 소트버튼(좌) + 문자/인원현황(우) */}
+        <div className="flex items-center justify-between w-full h-14 border-t border-[#3a3a5e]/30 pt-3">
+          
+          {/* 좌측: 소트버튼 (세로쓰기, 폭 50%, 여백 0) */}
+          <div className="flex items-center h-full bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] overflow-hidden">
+            {sortButtons.map((btn) => (
+              <button
+                key={btn.key}
+                onClick={() => handleSortToggle(btn.key)}
+                className={`h-full px-2.5 border-r last:border-r-0 border-[#3a3a5e] transition-all flex items-center justify-center
+                  ${sortCriteria.includes(btn.key) ? 'bg-blue-600 text-white' : 'hover:bg-[#2c2c2e] text-gray-400'}`}
+              >
+                <span className="text-[10px] md:text-xs font-black leading-none" style={{ writingMode: 'vertical-rl' }}>
+                  {btn.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* 우측: 문자발송 및 인원현황 */}
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={handleSendSMS}
+              className="flex items-center gap-1.5 px-3 py-2 bg-orange-600/20 border border-orange-500/50 hover:bg-orange-600 rounded-xl text-orange-400 hover:text-white font-black text-xs md:text-sm transition-all"
+            >
+              <SendHorizontal className="w-4 h-4" />
+              <span>문자발송</span>
+            </button>
+            <div className="flex flex-col items-end font-black tracking-tighter leading-tight border-l border-gray-800 pl-4">
+              <span className="text-blue-400 text-sm md:text-base">선택 {selectedIds.size}</span>
+              <span className="text-gray-500 text-[10px] md:text-xs">전체 {members.length}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Status Bar - 마진 간격 재조정 */}
-      <div className="flex flex-wrap items-center justify-between bg-[#1a1a2e] p-4 mb-4 mt-2 rounded-2xl border border-[#3a3a5e] shadow-xl">
-        <div className="flex items-center space-x-2">
-          <Filter className="w-5 h-5 text-gray-500 mr-2" />
-          {sortButtons.map(btn => (
-            <button key={btn.key} onClick={() => handleSortToggle(btn.key)} className={`px-4 py-2 rounded-lg font-black text-sm border ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#2c2c2e] border-[#3a3a5e] text-gray-500'}`}>{btn.label}</button>
-          ))}
-        </div>
-        <div className="flex items-center space-x-6 font-black">
-          <button onClick={handleSendSMS} className="flex items-center space-x-2 px-4 py-2 bg-orange-600/20 border border-orange-500/50 rounded-xl hover:bg-orange-600 text-orange-400 hover:text-white transition-colors"><SendHorizontal className="w-5 h-5" /><span>문자발송</span></button>
-          <div className="text-gray-500 text-sm border-l border-gray-700 pl-6">선택 <span className="text-blue-400 text-xl">{selectedIds.size}</span></div>
-          <div className="text-gray-500 text-sm">전체 <span className="text-white text-xl">{members.length}</span>명</div>
-        </div>
-      </div>
-
+      {/* 메인 테이블 영역 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-2xl border border-[#3a3a5e]">
         <table className="w-full text-left border-collapse min-w-[1200px]">
           <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-lg z-10">
@@ -210,7 +256,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               <th className="p-4 w-32 text-center">작업</th>
             </tr>
           </thead>
-          <tbody className="text-base">
+          <tbody className="text-base font-bold">
             {sortedMembers.map((m, index) => {
               const isEditing = editingId === m.id;
               return (
@@ -238,15 +284,15 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                       <span className="text-gray-400 px-1">{m.address}</span>
                     )}
                   </td>
-                  <td className="p-3 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-2 rounded-xl ${m.fee ? 'bg-emerald-600' : 'bg-gray-800 text-gray-600'}`}><Check className="w-5 h-5 font-black" /></button></td>
-                  <td className="p-3 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-2 rounded-xl ${m.attendance ? 'bg-blue-600' : 'bg-gray-800 text-gray-600'}`}><Check className="w-5 h-5 font-black" /></button></td>
-                  <td className="p-3 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-2 rounded-xl ${m.joined ? 'bg-indigo-600' : 'bg-gray-800 text-gray-600'}`}><Check className="w-5 h-5 font-black" /></button></td>
+                  <td className="p-3 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-2 rounded-xl transition-colors ${m.fee ? 'bg-emerald-600' : 'bg-gray-800 text-gray-600'}`}><Check className="w-5 h-5 font-black" /></button></td>
+                  <td className="p-3 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-2 rounded-xl transition-colors ${m.attendance ? 'bg-blue-600' : 'bg-gray-800 text-gray-600'}`}><Check className="w-5 h-5 font-black" /></button></td>
+                  <td className="p-3 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-2 rounded-xl transition-colors ${m.joined ? 'bg-indigo-600' : 'bg-gray-800 text-gray-600'}`}><Check className="w-5 h-5 font-black" /></button></td>
                   <td className="p-3 text-center">
                     <div className="flex justify-center space-x-2">
                       <button onClick={() => setEditingId(isEditing ? null : m.id)} className={`p-2 rounded-lg transition-colors ${isEditing ? 'bg-blue-600 text-white' : 'bg-[#2c2c2e] text-blue-400 hover:bg-blue-900/30'}`}>
                         {isEditing ? <Check className="w-5 h-5"/> : <Edit2 className="w-5 h-5"/>}
                       </button>
-                      <button onClick={() => deleteMember(m.id)} className="p-2 bg-[#2c2c2e] text-red-500 rounded-lg hover:bg-red-900/30"><Trash2 className="w-5 h-5"/></button>
+                      <button onClick={() => deleteMember(m.id)} className="p-2 bg-[#2c2c2e] text-red-500 rounded-lg hover:bg-red-900/30 transition-colors"><Trash2 className="w-5 h-5"/></button>
                     </div>
                   </td>
                 </tr>
