@@ -1,5 +1,5 @@
 /**
- * CalendarView.tsx - 디자인 유지 및 100% 너비 복구 전체 소스
+ * CalendarView.tsx - 디자인 유지 및 가로 폭 100% 강제 확장
  */
 import React, { useState, useRef } from 'react';
 import { 
@@ -9,7 +9,7 @@ import {
 import { ko } from 'date-fns/locale';
 import { 
   ChevronLeft, ChevronRight, Copy, Trash2, MousePointer2, 
-  RotateCcw, ClipboardCheck, FileDown, FileUp 
+  RotateCcw, FileDown, FileUp 
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Schedule } from '../../types';
@@ -120,10 +120,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    /* 롤백 핵심: 너비를 w-full로 꽉 채우고, box-border를 적용하여 보더를 안쪽으로 가둡니다. 
-       좁아지게 만들던 모든 mx-auto와 w-[calc] 옵션을 제거했습니다.
-    */
-    <div className={`flex flex-col h-full bg-[#121212] px-2 md:px-4 pt-0 pb-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] w-full box-border
+    /* 최외곽: w-full과 mx-0으로 좌우 정렬 간섭을 제거합니다. */
+    <div className={`flex flex-col h-full bg-[#121212] px-1 md:px-4 pt-0 pb-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] w-full mx-0 box-border
       ${mode === 'copy' ? 'border-blue-500/20' : 
         mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
     >
@@ -159,8 +157,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
         </div>
       </div>
 
-      {/* 7등분 그리드: 정석대로 grid-cols-7과 w-full을 사용하여 화면을 꽉 채웁니다. */}
-      <div className="flex-grow grid grid-cols-7 gap-1 md:gap-2 overflow-auto justify-items-stretch w-full">
+      {/* 해결 포인트: grid에 w-full을 주고 자식들이 가로폭을 강제 점유하게 합니다. */}
+      <div className="flex-grow grid grid-cols-7 gap-1 md:gap-2 w-full place-items-stretch overflow-auto">
         {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
           <div key={day} className="text-center font-black py-0.5 text-[10px] md:text-sm" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
         ))}
@@ -173,10 +171,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
           if (!isCurrentMonth) dayColor = 'rgba(156, 163, 175, 0.15)';
 
           return (
+            /* w-full과 flex-grow를 통해 각 칸이 가로를 최대한 채우도록 합니다. */
             <div key={day.toString()} onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} 
-                 className={`w-full min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col items-center text-center relative group min-w-0 ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-10'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}>
+                 className={`w-full flex-grow min-h-[80px] md:min-h-[110px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col items-center text-center relative min-w-0 ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-10'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}>
               <div className="flex items-baseline justify-center gap-1 w-full">
-                {/* 오늘 작업한 날짜 폰트 크기 유지 (text-2xl) */}
                 <span className="text-lg md:text-2xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>
                 {isCurrentMonth && label && <span className="text-[7px] md:text-[10px] font-bold truncate" style={{ color: COLORS.SUNDAY }}>{label}</span>}
               </div>
