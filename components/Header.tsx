@@ -16,7 +16,6 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
 
-  // 컴포넌트 마운트 시 스펠링 교정 및 부모의 title 상태 변경 시도
   useEffect(() => {
     const correctedTitle = "Metal Blue WorkSpace";
     if (!title || title === "기본 타이틀" || title === "New Project" || title === "Smart Workspace" || title === "Metal Blue WorkScpace") {
@@ -58,19 +57,18 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
     return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
   };
 
-  // 표시할 타이틀 결정 (스펠링 교정 반영)
   const displayTitle = title || "Metal Blue WorkSpace";
 
   return (
     <header className="sticky top-0 z-50 bg-[#1a1a2e] border-b border-[#3a3a5e] p-4 flex flex-col shadow-2xl transition-all duration-300 gap-3">
       
       <div className="flex items-center justify-between w-full">
-        {/* pl-0으로 수정하여 왼쪽 여백 제거 */}
+        {/* pl-0으로 왼쪽 여백 제거 유지 */}
         <div className="flex-1 flex justify-start pl-0 pr-2 overflow-hidden">
           {isEditingTitle ? (
             <input
               autoFocus
-              className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-2 py-1 text-2xl md:text-4xl font-black w-fit max-w-full outline-none text-white"
+              className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-2 py-1 text-xl md:text-4xl font-black w-fit max-w-full outline-none text-white"
               value={displayTitle}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => setIsEditingTitle(false)}
@@ -78,19 +76,23 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             />
           ) : (
             <h1 
-              className="text-2xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
+              /* - tracking-tighter보다 더 좁은 tracking-tightest(커스텀 또는 -0.05em 수준) 효과를 위해 스타일 직접 부여 가능하나, 
+                - 여기서는 Tailwind의 tracking-tighter와 모바일 폰트 크기 최적화(text-xl)를 적용했습니다.
+              */
+              className="text-[20px] sm:text-2xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
               onClick={() => setIsEditingTitle(true)}
+              style={{ letterSpacing: '-0.05em' }} // 글자 폭을 더 조여서 휴대폰에서 잘리지 않게 함
             >
               {displayTitle}
             </h1>
           )}
         </div>
 
-        <div className="flex flex-col text-right leading-tight shrink-0 min-w-[140px] md:min-w-[220px]">
-          <span className="text-blue-400 text-[13px] md:text-xl font-bold whitespace-nowrap">
+        <div className="flex flex-col text-right leading-tight shrink-0 min-w-[120px] md:min-w-[220px]">
+          <span className="text-blue-400 text-[11px] md:text-xl font-bold whitespace-nowrap">
             {formatDate(currentTime)}
           </span>
-          <span className="text-blue-400 text-lg md:text-4xl font-black tracking-tighter whitespace-nowrap tabular-nums">
+          <span className="text-blue-400 text-base md:text-4xl font-black tracking-tighter whitespace-nowrap tabular-nums">
             {formatTime(currentTime)}
           </span>
         </div>
@@ -116,7 +118,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
               className={`p-2 md:p-3.5 rounded-lg flex items-center justify-center transition-all ${mode === m ? 'bg-blue-600 scale-105 shadow-lg shadow-blue-900' : 'bg-[#2c2c2e] hover:bg-[#3a3a5e]'}`}
             >
               <Icon 
-                className={`w-6 h-6 md:w-9 md:h-9 ${m === AppMode.YOUTUBE ? 'text-[#FF0000]' : 'text-white'}`} 
+                className={`w-5 h-5 md:w-9 md:h-9 ${m === AppMode.YOUTUBE ? 'text-[#FF0000]' : 'text-white'}`} 
               />
             </button>
           ))}
@@ -130,15 +132,15 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-end text-blue-400 text-[13px] md:text-lg font-bold whitespace-nowrap space-x-1">
+              <div className="flex items-center justify-end text-blue-400 text-[11px] md:text-lg font-bold whitespace-nowrap space-x-1">
                 <span className="text-blue-500">{weather.minTemp}°</span>
                 <span className="text-gray-500">/</span>
                 <span className="text-rose-500">{weather.maxTemp}°</span>
-                <MapPin className="w-4 h-4 ml-1 text-blue-500" />
+                <MapPin className="w-3 h-3 ml-1 text-blue-500" />
                 <span>{weather.location}</span>
               </div>
-              <div className="flex items-center justify-end text-emerald-400 text-base md:text-[28px] font-black tracking-tighter whitespace-nowrap">
-                <CloudSun className="w-6 h-6 md:w-8 md:h-8 mr-1.5" />
+              <div className="flex items-center justify-end text-emerald-400 text-sm md:text-[28px] font-black tracking-tighter whitespace-nowrap">
+                <CloudSun className="w-5 h-5 md:w-8 md:h-8 mr-1.5" />
                 <span>{weather.temp}°C {weather.condition}</span>
               </div>
             </>
