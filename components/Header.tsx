@@ -16,6 +16,13 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
 
+  // 초기 타이틀 설정 (Metal Blue WorkScpace)
+  useEffect(() => {
+    if (!title) {
+      setTitle("Metal Blue WorkScpace");
+    }
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -65,12 +72,11 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
               onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
             />
           ) : (
-            /* 수정: w-fit 적용으로 클릭 범위 제한 */
             <h1 
               className="text-2xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
               onClick={() => setIsEditingTitle(true)}
             >
-              {title}
+              {title || "Metal Blue WorkScpace"}
             </h1>
           )}
         </div>
