@@ -272,7 +272,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e]">
         <table className="w-full text-left border-collapse table-fixed min-w-[450px]">
-          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[11px] md:text-sm z-10">
+          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[13px] md:text-[17px] z-10">
             <tr className="border-b border-[#3a3a5e]">
               <th className="p-1.5 w-8 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={members.length > 0 && actualSelectedCount === members.length} onChange={toggleAll} /></th>
               <th className="p-1.5 w-8 text-center">N</th>
