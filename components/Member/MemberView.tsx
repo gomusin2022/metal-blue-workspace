@@ -164,7 +164,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // 단체 문자 발송 기능 구현
   const handleSendSMS = () => {
     if (selectedIds.size === 0) {
       alert("문자를 발송할 회원을 먼저 선택해 주세요.");
@@ -173,15 +172,14 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
     const selectedMembers = members.filter(m => selectedIds.has(m.id));
     const phoneNumbers = selectedMembers
-      .map(m => m.phone.replace(/-/g, '')) // 하이픈 제거
-      .filter(phone => phone.length >= 10); // 유효한 번호만 필터링
+      .map(m => m.phone.replace(/-/g, ''))
+      .filter(phone => phone.length >= 10);
 
     if (phoneNumbers.length === 0) {
       alert("선택된 회원 중 유효한 전화번호가 없습니다.");
       return;
     }
 
-    // iOS와 Android 기기별 SMS 구분자 처리
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const separator = isIOS ? ';' : ',';
     const smsUrl = `sms:${phoneNumbers.join(separator)}`;
@@ -321,9 +319,9 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                       m.address
                     )}
                   </td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded transition-colors ${m.fee ? 'text-emerald-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded transition-colors ${m.attendance ? 'text-amber-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded transition-colors ${m.joined ? 'text-rose-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded transition-colors ${m.fee ? 'text-yellow-400' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded transition-colors ${m.attendance ? 'text-green-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded transition-colors ${m.joined ? 'text-purple-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
                   <td className="p-0 text-center pr-1">
                     <div className="flex justify-center gap-1.5">
                       <button onClick={() => setEditingId(isEditing ? null : m.id)} className="text-blue-400 p-1 hover:bg-[#2c2c2e] rounded">{isEditing ? <Check className="w-4 h-4"/> : <Edit2 className="w-4 h-4"/>}</button>
