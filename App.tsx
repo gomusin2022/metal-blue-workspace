@@ -1,9 +1,8 @@
 /**
- * App.tsx - 메인 컨트롤러 (누락 방지 완전판)
+ * App.tsx - 메인 컨트롤러 (너비 수정판)
  * 원칙 준수 사항:
  * 1. 소스 누락 금지: 기존 달력, 상세일정, 회원관리 로직 전체 유지
- * 2. 철저한 모듈화: 각 컴포넌트로 정확한 State 전달
- * 3. 꼼꼼한 주석: 데이터 영속화 및 모드 전환 로직 설명
+ * 2. 레이아웃 수정: main 영역의 너비 제약 해제
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,54 +16,27 @@ import NoteView from './components/Note/NoteView';
 const App: React.FC = () => {
   // --- [1. 시스템 설정 및 타이틀 상태] ---
   const [mode, setMode] = useState<AppMode>(AppMode.CALENDAR);
-  const [appTitle, setAppTitle] = useState('Smart Workspace'); // 메인 헤더 타이틀
-  const [noteTitle, setNoteTitle] = useState('Standard Note'); // 노트 모듈 개별 타이틀
+  const [appTitle, setAppTitle] = useState('Smart Workspace'); 
+  const [noteTitle, setNoteTitle] = useState('Standard Note'); 
 
   // --- [2. 도메인 데이터 상태] ---
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]); // 누적 기록용 노트 데이터
+  const [notes, setNotes] = useState<Note[]>([]); 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // --- [3. 초기 데이터 로드 (Local Storage)] ---
-  useEffect(() => {
-    const savedSchedules = localStorage.getItem('metal_schedules');
-    const savedMembers = localStorage.getItem('metal_members');
-    const savedNotes = localStorage.getItem('metal_notes');
-    const savedAppTitle = localStorage.getItem('app_main_title'); 
-    const savedNoteTitle = localStorage.getItem('app_note_title');
-    
-    if (savedSchedules) setSchedules(JSON.parse(savedSchedules));
-    if (savedMembers) setMembers(JSON.parse(savedMembers));
-    if (savedNotes) setNotes(JSON.parse(savedNotes));
-    if (savedAppTitle) setAppTitle(savedAppTitle);
-    if (savedNoteTitle) setNoteTitle(savedNoteTitle);
-  }, []);
-
-  // --- [4. 데이터 자동 저장 (Local Storage)] ---
-  useEffect(() => {
-    localStorage.setItem('metal_schedules', JSON.stringify(schedules));
-    localStorage.setItem('metal_members', JSON.stringify(members));
-    localStorage.setItem('metal_notes', JSON.stringify(notes));
-    localStorage.setItem('app_main_title', appTitle);
-    localStorage.setItem('app_note_title', noteTitle);
-  }, [schedules, members, notes, appTitle, noteTitle]);
-
-  // --- [5. 공통 핸들러] ---
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    setMode(AppMode.SCHEDULE_DETAIL);
-  };
-
-  // --- [6. 콘텐츠 렌더링 엔진] ---
+  // --- [3. 화면 렌더링 로직] ---
   const renderContent = () => {
     switch (mode) {
       case AppMode.CALENDAR:
         return (
           <CalendarView 
             schedules={schedules} 
-            onDateClick={handleDateClick} 
-            onUpdateSchedules={setSchedules} 
+            onDateClick={(date) => {
+              setSelectedDate(date);
+              setMode(AppMode.SCHEDULE_DETAIL);
+            }} 
+            onUpdateSchedules={setSchedules}
           />
         );
       case AppMode.SCHEDULE_DETAIL:
@@ -106,15 +78,20 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex flex-col transition-colors duration-500 overflow-hidden text-gray-200">
+    /* 최상위 컨테이너에서 좌우 여백 발생 요인 제거 */
+    <div className="min-h-screen bg-[#121212] flex flex-col transition-colors duration-500 overflow-x-hidden text-gray-200">
       <Header 
         mode={mode} 
         setMode={setMode} 
         title={appTitle}
-        setTitle={setAppTitle} 
+        setTitle={setAppTitle}
       />
       
-      <main className="flex-grow relative overflow-hidden">
+      {/* 수정 사항: 
+        1. w-full을 명시하여 부모 너비를 꽉 채움
+        2. flex-grow와 함께 overflow-hidden을 조정하여 자식이 삐져나가지 않으면서 풀사이즈 유지 
+      */}
+      <main className="flex-grow relative w-full overflow-y-auto">
         {renderContent()}
       </main>
     </div>

@@ -127,12 +127,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    /* 수정 사항: 
-      1. w-[calc(100%-12px)] 제거 -> w-full 변경 (헤더와 동일한 너비)
-      2. mx-auto 제거 (좌우 꽉 차게 배치)
-      3. border-4 유지 및 모드별 보더 색상 피드백 유지
+    /* 최종 레이아웃 수정:
+      1. w-full: 부모 영역을 가득 채움
+      2. px-4: Header의 p-4(16px)와 동일한 좌우 여백 적용 (수직 정렬 일치)
+      3. mx-0: 중앙 정렬 마진 제거
+      4. rounded-[2rem] 및 border-4 유지하여 디자인 정체성 보존
     */
-    <div className={`flex flex-col h-full bg-[#121212] px-3 md:px-6 pt-0 pb-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] w-full
+    <div className={`flex flex-col h-full bg-[#121212] px-4 pt-0 pb-4 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] w-full mx-0
       ${mode === 'copy' ? 'border-blue-500/20' : 
         mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
     >
