@@ -1,3 +1,7 @@
+/**
+ * CalendarView.tsx - 달력 모듈 (좌측 밀림 해결 및 로직 누락 방지 완전판)
+ */
+
 import React, { useState, useRef } from 'react';
 import { 
   format, addMonths, subMonths, startOfMonth, endOfMonth, 
@@ -127,18 +131,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    /* 수정 사항: 좌측 편향 옵션(ml, pl 등)을 모두 제거하고 균등 여백(px-1.5)과 mx-auto로 대칭 확보 */
-    <div className={`flex flex-col h-full bg-[#121212] px-1.5 md:px-4 pt-0 pb-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] mx-auto w-[calc(100%-4px)] box-border
+    <div className={`flex flex-col h-full bg-[#121212] px-2 md:px-4 pt-0 pb-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] w-full box-border
       ${mode === 'copy' ? 'border-blue-500/20' : 
         mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
     >
+      {/* 상단 타이틀 영역 */}
       <div className="flex flex-col w-full mb-1">
         <div className="flex items-center justify-between w-full h-10 px-1">
           <div className="flex-1 flex justify-start">
             {isEditingTitle ? (
-              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-xs" value={calendarTitle} onChange={(e) => setCalendarTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+              <input 
+                autoFocus 
+                className="bg-[#2c2c2e] border border-blue-500 rounded px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-xs" 
+                value={calendarTitle} 
+                onChange={(e) => setCalendarTitle(e.target.value)} 
+                onBlur={() => setIsEditingTitle(false)} 
+                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} 
+              />
             ) : (
-              <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter whitespace-nowrap w-fit hover:text-blue-400 transition-colors" onClick={() => setIsEditingTitle(true)}>{calendarTitle}</h2>
+              <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter whitespace-nowrap w-fit hover:text-blue-400 transition-colors" onClick={() => setIsEditingTitle(true)}>
+                {calendarTitle}
+              </h2>
             )}
           </div>
 
@@ -174,8 +187,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
         </div>
       </div>
 
-      {/* 수정 사항: justify-items-stretch를 사용하여 7개 열을 균등하게 가득 채움 */}
-      <div className="flex-grow grid grid-cols-7 gap-1 md:gap-2 overflow-auto justify-items-stretch">
+      {/* 달력 그리드 - justify-items-stretch로 완벽한 7등분 구현 */}
+      <div className="flex-grow grid grid-cols-7 gap-1 md:gap-2 overflow-auto justify-items-stretch w-full">
         {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
           <div key={day} className="text-center font-black py-0.5 text-[10px] md:text-sm" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
         ))}
@@ -191,8 +204,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
             <div 
               key={day.toString()} 
               onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} 
-              /* items-center와 text-center를 결합하여 칸 내부의 완벽한 중앙 정렬 실현 */
-              className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col items-center text-center relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-30'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}
+              className={`w-full min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col items-center text-center relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-10'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}
             >
               <div className="flex items-baseline justify-center gap-1 w-full">
                 <span className="text-lg md:text-xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>
