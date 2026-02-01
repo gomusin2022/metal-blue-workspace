@@ -66,20 +66,22 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
-    const clean8 = digits.slice(-8);
-    if (clean8.length === 8) {
-      return `010-${clean8.slice(0, 4)}-${clean8.slice(4)}`;
+    if (digits.length === 8) {
+      return `010-${digits.slice(0, 4)}-${digits.slice(4)}`;
+    } else if (digits.length > 8) {
+      const last8 = digits.slice(-8);
+      return `010-${last8.slice(0, 4)}-${last8.slice(4)}`;
     }
-    return '010--';
+    return digits.length > 0 ? `010-${digits}` : '010--';
   };
 
-  // 전화번호 세그먼트 입력 로직
+  // 전화번호 세그먼트 입력 로직 개선
   const handlePhoneChange = (id: string, part: 'mid' | 'end', value: string, currentPhone: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 4);
     const parts = (currentPhone || '010--').split('-');
     
-    let mid = parts[1] || '';
-    let end = parts[2] || '';
+    let mid = (parts[1] || '').replace(/\s/g, '');
+    let end = (parts[2] || '').replace(/\s/g, '');
 
     if (part === 'mid') {
       mid = digits;
@@ -117,7 +119,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   };
 
   const processImportedData = (newData: any[], mode: 'append' | 'overwrite') => {
-    // 1. 가져온 데이터 정규화 (뒤 8자리 기준)
     const formattedData: Member[] = newData.map((d) => ({
       id: crypto.randomUUID(), sn: 0,
       name: d['성명'] || d.name || '',
@@ -130,17 +131,13 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
     if (mode === 'overwrite') {
       setMembers(formattedData.map((m, idx) => ({ ...m, sn: idx + 1 })));
+      setSelectedIds(new Set());
     } else {
-      // 2. 중복 체크 로직 개선: 기존 회원들의 번호에서 뒤 8자리만 추출하여 Set 생성
       const currentPhoneKeys = new Set(members.map(m => normalizeTo8Digits(m.phone)));
-      
-      // 3. 새 데이터 중 뒤 8자리가 겹치지 않는 것만 필터링 (010 유무 상관없이 필터링됨)
       const nonDuplicates = formattedData.filter(m => {
         const newKey = normalizeTo8Digits(m.phone);
-        // 번호가 유효(8자리)하고 기존 목록에 없을 때만 추가
         return newKey.length === 8 && !currentPhoneKeys.has(newKey);
       });
-
       setMembers([...members, ...nonDuplicates].map((m, idx) => ({ ...m, sn: idx + 1 })));
     }
   };
@@ -160,9 +157,14 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     setEditingId(newMember.id);
   };
 
-  const handleClearAll = () => {
-    if (window.confirm("현재 명단 목록을 모두 삭제하고 초기화하시겠습니까?")) {
-      setMembers([]);
+  // 선택된 회원들만 삭제하도록 수정
+  const handleClearSelected = () => {
+    if (selectedIds.size === 0) {
+      alert("삭제할 회원을 먼저 선택해 주세요.");
+      return;
+    }
+    if (window.confirm(`선택한 ${selectedIds.size}명의 회원을 목록에서 삭제하시겠습니까?`)) {
+      setMembers(members.filter(m => !selectedIds.has(m.id)));
       setSelectedIds(new Set());
       setEditingId(null);
     }
@@ -177,13 +179,15 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   };
 
   const updateMember = (id: string, field: keyof Member, value: any) => {
-    // phone 필드는 handlePhoneChange에서 별도로 처리하므로 여기서는 일반 업데이트만 수행
     setMembers(members.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
 
   const deleteMember = (id: string) => {
     if (window.confirm("삭제하시겠습니까?")) {
       setMembers(members.filter(m => m.id !== id));
+      const nextSelected = new Set(selectedIds);
+      nextSelected.delete(id);
+      setSelectedIds(nextSelected);
       if (editingId === id) setEditingId(null);
     }
   };
@@ -219,7 +223,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             )}
           </div>
           <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 scale-100">
-            <button onClick={handleClearAll} className="p-1.5 text-red-500 hover:bg-[#2c2c2e] rounded"><Eraser className="w-5 h-5" /></button>
+            <button onClick={handleClearSelected} className="p-1.5 text-red-500 hover:bg-[#2c2c2e] rounded" title="선택 삭제"><Eraser className="w-5 h-5" /></button>
             <button onClick={addMember} className="p-1.5 text-blue-500 hover:bg-[#2c2c2e] rounded"><UserPlus className="w-5 h-5" /></button>
             <button onClick={handleExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded"><FileDown className="w-5 h-5" /></button>
             <label className="p-1.5 text-emerald-500 cursor-pointer hover:bg-[#2c2c2e] rounded"><FileUp className="w-5 h-5" /><input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => { const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; readExcel(e.target.files![0]).then(d => processImportedData(d, mode)); e.target.value=''; }} /></label>
@@ -280,9 +284,9 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                     {isEditing ? (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">010-</span>
-                        <input ref={phoneMidRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={phoneParts[1] || ''} onChange={(e) => handlePhoneChange(m.id, 'mid', e.target.value, m.phone)} maxLength={4} />
+                        <input ref={phoneMidRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={(phoneParts[1] || '').trim()} onChange={(e) => handlePhoneChange(m.id, 'mid', e.target.value, m.phone)} maxLength={4} />
                         <span className="text-gray-500">-</span>
-                        <input ref={phoneEndRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={phoneParts[2] || ''} onChange={(e) => handlePhoneChange(m.id, 'end', e.target.value, m.phone)} onKeyDown={(e) => handlePhoneKeyDown(e, 'end')} maxLength={4} />
+                        <input ref={phoneEndRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={(phoneParts[2] || '').trim()} onChange={(e) => handlePhoneChange(m.id, 'end', e.target.value, m.phone)} onKeyDown={(e) => handlePhoneKeyDown(e, 'end')} maxLength={4} />
                       </div>
                     ) : (
                       m.phone
