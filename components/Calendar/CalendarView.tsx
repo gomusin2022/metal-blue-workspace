@@ -127,8 +127,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] px-4 pt-0 pb-4 text-gray-200 w-full m-0">
-      <div className="flex flex-col w-full mb-1">
+    <div className="flex flex-col h-full bg-[#121212] text-gray-200 w-full">
+      {/* 헤더 영역과 동일한 좌우 패딩(또는 0)으로 맞춤 */}
+      <div className="flex flex-col w-full mb-1 px-1.5 md:px-6">
+
         <div className="flex items-center justify-between w-full h-10">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
@@ -182,11 +184,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
         </div>
       </div>
 
-      <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] p-2">
-        <div className="grid grid-cols-7 gap-1 md:gap-2">
+      {/* 달력 본문 - 좌우 패딩 최소화 & w-full 강제 */}
+      <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] mx-1.5 md:mx-6 mb-1.5 md:mb-6">
+        <div className="grid grid-cols-7 gap-px md:gap-1 bg-[#252545] min-h-full">
           {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-            <div key={day} className="text-center font-black py-1 text-[10px] md:text-sm" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
+            <div 
+              key={day} 
+              className="text-center font-black py-1.5 md:py-2 text-[10px] md:text-sm bg-[#1a1a2e]" 
+              style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}
+            >
+              {day}
+            </div>
           ))}
+
           {calendarDays.map((day) => {
             const daySchedules = schedules.filter(s => isSameDay(new Date(s.date), day));
             const isCurrentMonth = isSameMonth(day, monthStart);
@@ -198,11 +208,57 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
             return (
               <div 
                 key={day.toString()} 
-                onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} 
-                className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-30'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}
+                onClick={() => { 
+                  if (mode === 'normal') onDateClick(day); 
+                  else if (mode === 'copy') handleCopyAction(day); 
+                  else if (mode === 'delete') handleDeleteAction(day); 
+                }} 
+                className={`
+                  min-h-[90px] md:min-h-[110px] lg:min-h-[130px]
+                  p-1.5 md:p-2 
+                  border border-[#3a3a5e]/70
+                  transition-all cursor-pointer 
+                  flex flex-col relative group
+                  ${isCurrentMonth 
+                    ? 'bg-[#1a1a2e]' 
+                    : 'bg-[#0f0f1a] opacity-50'
+                  }
+                  ${mode === 'delete' && daySchedules.length > 0 
+                    ? 'hover:bg-rose-900/30 hover:border-rose-600' 
+                    : 'hover:border-blue-500/70 hover:bg-[#252545]'
+                  }
+                  ${isSameDay(day, new Date()) 
+                    ? 'ring-2 ring-blue-500/70 shadow-[0_0_12px_rgba(59,130,246,0.3)]' 
+                    : ''
+                  }
+                `}
               >
-                <div className="flex items-baseline gap-1"><span className="text-lg md:text-xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>{isCurrentMonth && label && <span className="text-[7px] md:text-[9px] font-bold truncate" style={{ color: COLORS.SUNDAY }}>{label}</span>}</div>
-                <div className="mt-0.5 space-y-0.5 overflow-hidden">{daySchedules.slice(0, 3).map((s) => (<div key={s.id} className="text-[8px] md:text-[10px] px-1.5 py-0.5 bg-blue-600/10 text-blue-300 rounded-md truncate font-bold border border-blue-500/10">{s.title}</div>))}{daySchedules.length > 3 && <div className="text-[8px] text-gray-500 pl-1 font-black">+{daySchedules.length - 3}</div>}</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl md:text-2xl font-black" style={{ color: dayColor }}>
+                    {format(day, 'd')}
+                  </span>
+                  {isCurrentMonth && label && (
+                    <span className="text-[9px] md:text-xs font-bold truncate text-red-400/90">
+                      {label}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-1 space-y-1 overflow-hidden flex-1">
+                  {daySchedules.slice(0, 4).map((s) => (
+                    <div 
+                      key={s.id} 
+                      className="text-[9px] md:text-xs px-1.5 py-0.5 bg-blue-900/20 text-blue-200 rounded border border-blue-800/30 truncate font-medium"
+                    >
+                      {s.title}
+                    </div>
+                  ))}
+                  {daySchedules.length > 4 && (
+                    <div className="text-[9px] text-gray-500 pl-1 font-black">
+                      +{daySchedules.length - 4}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -211,8 +267,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
 
       {clipboard.length > 0 && mode === 'copy' && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-[#2c2c2e] text-cyan-400 rounded shadow-2xl font-black border border-cyan-900/50 text-xs">
-            <ClipboardCheck className="w-4 h-4" /> {clipboard.length}개 복사 대기 중
+          <div className="flex items-center gap-2 px-6 py-3 bg-[#2c2c2e] text-cyan-400 rounded-full shadow-2xl font-black border border-cyan-900/60 text-sm">
+            <ClipboardCheck className="w-5 h-5" /> {clipboard.length}개 복사 대기 중
           </div>
         </div>
       )}
