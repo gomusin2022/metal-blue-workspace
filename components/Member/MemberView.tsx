@@ -1,279 +1,268 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
-  format, addMonths, subMonths, startOfMonth, endOfMonth, 
-  startOfWeek, endOfWeek, isSameMonth, isSameDay, eachDayOfInterval, getDay
-} from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { 
-  ChevronLeft, ChevronRight, Copy, Trash2, MousePointer2, 
-  RotateCcw, ClipboardCheck, FileDown, FileUp 
+  UserPlus, FileDown, FileUp, Image as ImageIcon, Trash2, Edit2, Check, 
+  Loader2, Eraser, SendHorizontal 
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { Schedule } from '../../types';
-import { COLORS } from '../../constants';
+import { format } from 'date-fns';
+import { Member } from '../../types';
+import { exportToExcel, readExcel } from '../../services/excelService';
+import { extractMembersFromImage } from '../../services/geminiService';
 
-interface CalendarViewProps {
-  schedules: Schedule[];
-  onDateClick: (date: Date) => void;
-  onUpdateSchedules: (newSchedules: Schedule[]) => void;
+interface MemberViewProps {
+  members: Member[];
+  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
+  onHome: () => void;
 }
 
-type WorkMode = 'normal' | 'copy' | 'delete';
-
-const HOLIDAY_LABELS_2026: Record<string, string> = {
-  '2026-01-01': '신정', '2026-02-17': '설날', '2026-03-01': '삼일절',
-  '2026-05-05': '어린이날', '2026-05-24': '석가탄신일', '2026-06-06': '현충일',
-  '2026-08-15': '광복절', '2026-09-25': '추석', '2026-10-03': '개천절',
-  '2026-10-09': '한글날', '2026-12-25': '성탄절',
-};
-
-const RED_DAYS_2026 = new Set([
-  '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18', '2026-03-01', 
-  '2026-03-02', '2026-05-05', '2026-05-24', '2026-05-25', '2026-06-06',
-  '2026-08-15', '2026-08-17', '2026-09-24', '2026-09-25', '2026-09-26',
-  '2026-10-03', '2026-10-05', '2026-10-09', '2026-12-25',
-]);
-
-const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onUpdateSchedules }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendarTitle, setCalendarTitle] = useState('Schedule Board');
+const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
+  const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [mode, setMode] = useState<WorkMode>('normal');
-  const [clipboard, setClipboard] = useState<Schedule[]>([]); 
-  const [undoStack, setUndoStack] = useState<Schedule[][]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+  const [sortCriteria, setSortCriteria] = useState<string[]>(['name']);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart);
-  const endDate = endOfWeek(monthEnd);
-  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+  useEffect(() => {
+    if (members.length > 0 && !members[0].name) {
+      nameInputRef.current?.focus();
+    }
+  }, [members.length > 0 ? members[0].id : null]);
 
-  const getDayStatus = (day: Date) => {
-    const formatted = format(day, 'yyyy-MM-dd');
-    const dayOfWeek = getDay(day);
-    const isRedDay = RED_DAYS_2026.has(formatted) || dayOfWeek === 0;
-    const isSaturday = dayOfWeek === 6;
-    const label = HOLIDAY_LABELS_2026[formatted];
-    return { isRedDay, isSaturday, label };
+  const handleSortToggle = (key: string) => {
+    setSortCriteria(prev => {
+      if (prev.includes(key)) return prev.filter(k => k !== key);
+      return [key, ...prev];
+    });
   };
 
-  const exportToExcel = () => {
-    const targetMonthStr = format(currentMonth, 'yyyy-MM');
-    const monthlyData = schedules
-      .filter(s => s.date.startsWith(targetMonthStr))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
-      .map(s => ({ 날짜: s.date, 시작시간: s.startTime, 종료시간: s.endTime, 제목: s.title }));
+  const sortedMembers = useMemo(() => {
+    if (sortCriteria.length === 0) return members;
+    return [...members].sort((a, b) => {
+      for (const key of sortCriteria) {
+        if (key === 'name') {
+          const res = a.name.localeCompare(b.name, 'ko');
+          if (res !== 0) return res;
+        } else {
+          const valA = a[key as keyof Member] ? 1 : 0;
+          const valB = b[key as keyof Member] ? 1 : 0;
+          if (valA !== valB) return valB - valA;
+        }
+      }
+      return 0;
+    });
+  }, [members, sortCriteria]);
 
-    if (monthlyData.length === 0) {
-      alert(`${targetMonthStr}에 등록된 일정이 없습니다.`);
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    let res = '';
+    const cleanDigits = digits.length === 8 ? '010' + digits : (digits.startsWith('010') ? digits : '010' + digits);
+    if (cleanDigits.length <= 3) res = cleanDigits;
+    else if (cleanDigits.length <= 7) res = `${cleanDigits.slice(0, 3)}-${cleanDigits.slice(3)}`;
+    else res = `${cleanDigits.slice(0, 3)}-${cleanDigits.slice(3, 7)}-${cleanDigits.slice(7, 11)}`;
+    return res;
+  };
+
+  const handleExport = () => {
+    const now = new Date();
+    const fileName = window.prompt("엑셀 저장 파일명", `${memberTitle}_${format(now, 'yyyy_MM')}`);
+    if (fileName) {
+      const validMembers = sortedMembers.filter(m => m.name && m.name.trim() !== '');
+      if (validMembers.length === 0) {
+        alert("저장할 유효한 회원 데이터가 없습니다.");
+        return;
+      }
+      const exportData = validMembers.map((m, idx) => ({
+        'N': idx + 1,
+        '성명': m.name, '전화번호': m.phone, '주소': m.address,
+        '회비': m.fee ? 'O' : 'X', '출석': m.attendance ? 'O' : 'X', '가입': m.joined ? 'O' : 'X'
+      }));
+      exportToExcel(exportData, fileName);
+    }
+  };
+
+  const processImportedData = (newData: any[], mode: 'append' | 'overwrite') => {
+    const formattedData: Member[] = newData.map((d) => ({
+      id: crypto.randomUUID(), sn: 0,
+      name: d['성명'] || d.name || '',
+      phone: formatPhoneNumber(String(d['전화번호'] || d['전화'] || d.phone || '')),
+      address: d['주소'] || d.address || '',
+      fee: d['회비'] === 'O' || Boolean(d.fee),
+      attendance: d['출석'] === 'O' || Boolean(d.attendance),
+      joined: d['가입'] === 'O' || Boolean(d.joined)
+    }));
+    if (mode === 'overwrite') {
+      setMembers(formattedData.map((m, idx) => ({ ...m, sn: idx + 1 })));
+    } else {
+      const currentPhones = new Set(members.map(m => m.phone));
+      const nonDuplicates = formattedData.filter(m => !currentPhones.has(m.phone));
+      setMembers([...members, ...nonDuplicates].map((m, idx) => ({ ...m, sn: idx + 1 })));
+    }
+  };
+
+  const addMember = () => {
+    if (members.length > 0 && !members[0].name.trim()) {
+      alert("추가된 행의 성명을 먼저 입력해 주세요.");
+      nameInputRef.current?.focus();
       return;
     }
-
-    const defaultFileName = `${targetMonthStr}_일정관리`;
-    const fileName = prompt("저장할 엑셀 파일명을 입력하세요:", defaultFileName);
-    if (fileName === null) return;
-
-    const worksheet = XLSX.utils.json_to_sheet(monthlyData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "월간일정");
-    XLSX.writeFile(workbook, `${fileName || defaultFileName}.xlsx`);
-  };
-
-  const importFromExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws) as any[];
-      const importedSchedules: Schedule[] = data.map(item => ({
-        id: crypto.randomUUID(),
-        date: item.날짜 || item.date,
-        startTime: item.시작시간 || item.startTime || '09:00',
-        endTime: item.종료시간 || item.endTime || '10:00',
-        title: item.제목 || item.title || '새 일정'
-      }));
-      onUpdateSchedules([...schedules, ...importedSchedules]);
+    setSortCriteria([]);
+    const newMember: Member = { 
+      id: crypto.randomUUID(), sn: 0, name: '', phone: '010-', address: '', 
+      fee: false, attendance: false, joined: false 
     };
-    reader.readAsBinaryString(file);
+    setMembers([newMember, ...members]);
+    setEditingId(newMember.id);
   };
 
-  const handleCopyAction = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const daySchedules = schedules.filter(s => s.date === dateStr);
-    if (daySchedules.length > 0) setClipboard(daySchedules);
-    else if (clipboard.length > 0) {
-      const newSchedules = clipboard.map(s => ({ ...s, id: crypto.randomUUID(), date: dateStr }));
-      onUpdateSchedules([...schedules, ...newSchedules]);
+  const handleClearAll = () => {
+    if (window.confirm("현재 명단 목록을 모두 삭제하고 초기화하시겠습니까?")) {
+      setMembers([]);
+      setSelectedIds(new Set());
+      setEditingId(null);
     }
   };
 
-  const handleDeleteAction = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const targetSchedules = schedules.filter(s => s.date === dateStr);
-    if (targetSchedules.length === 0) return;
-    setUndoStack(prev => [...prev, targetSchedules]);
-    onUpdateSchedules(schedules.filter(s => s.date !== dateStr));
+  const handleSendSMS = () => {
+    if (selectedIds.size === 0) {
+      alert("문자를 발송할 회원을 먼저 선택해 주세요.");
+      return;
+    }
+    alert(`${selectedIds.size}명에게 단체 문자 발송을 시작합니다.`);
   };
 
-  const handleUndo = () => {
-    if (undoStack.length === 0) return;
-    const lastDeleted = undoStack[undoStack.length - 1];
-    onUpdateSchedules([...schedules, ...lastDeleted]);
-    setUndoStack(prev => prev.slice(0, -1));
+  const updateMember = (id: string, field: keyof Member, value: any) => {
+    setMembers(members.map(m => m.id === id ? { ...m, [field]: field === 'phone' ? formatPhoneNumber(value) : value } : m));
   };
+
+  const deleteMember = (id: string) => {
+    if (window.confirm("삭제하시겠습니까?")) {
+      setMembers(members.filter(m => m.id !== id));
+      if (editingId === id) setEditingId(null);
+    }
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === members.length && members.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(members.map(m => m.id)));
+  };
+
+  const sortButtons = [
+    { label: '이름', key: 'name' },
+    { label: '가입', key: 'joined' },
+    { label: '회비', key: 'fee' },
+    { label: '출결', key: 'attendance' },
+  ];
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] text-gray-200 w-full">
-      <div className="flex flex-col w-full mb-1 px-0">
-
-        {/* 첫째 줄: 제목 및 모드/되돌리기 버튼 */}
-        <div className="flex items-center justify-between w-full h-auto md:min-h-[64px] py-1 md:py-2 px-1.5 md:px-6">
-          <div className="flex-1 overflow-hidden">
-            {isEditingTitle ? (
-              <input 
-                autoFocus 
-                className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" 
-                value={calendarTitle} 
-                onChange={(e) => setCalendarTitle(e.target.value)} 
-                onBlur={() => setIsEditingTitle(false)} 
-                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} 
-              />
-            ) : (
-              <h2 
-                className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" 
-                onClick={() => setIsEditingTitle(true)}
-              >
-                {calendarTitle}
-              </h2>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg">
-              <button onClick={() => { setMode('normal'); setClipboard([]); }} className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded transition-all ${mode === 'normal' ? 'bg-blue-600 shadow-md' : 'hover:bg-[#2c2c2e]'}`}><MousePointer2 className="w-6 h-6 md:w-9 md:h-9 text-amber-400" /></button>
-              <button onClick={() => setMode('copy')} className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded transition-all ${mode === 'copy' ? 'bg-blue-600 shadow-md' : 'hover:bg-[#2c2c2e]'}`}><Copy className="w-6 h-6 md:w-9 md:h-9 text-cyan-400" /></button>
-              <button onClick={() => setMode('delete')} className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded transition-all ${mode === 'delete' ? 'bg-blue-600 shadow-md' : 'hover:bg-[#2c2c2e]'}`}><Trash2 className="w-6 h-6 md:w-9 md:h-9 text-rose-500" /></button>
-            </div>
-            <button onClick={handleUndo} className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-[#1a1a2e] border border-[#3a3a5e] rounded text-emerald-400 relative">
-              <RotateCcw className="w-6 h-6 md:w-9 md:h-9" />
-              {undoStack.length > 0 && <span className="absolute top-0.5 right-0.5 bg-emerald-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">{undoStack.length}</span>}
-            </button>
-          </div>
-        </div>
-
-        {/* 둘째 줄: 월 이동 및 엑셀 저장/업로드 버튼 */}
-        <div className="flex items-center justify-between w-full h-auto md:min-h-[64px] border-t border-[#3a3a5e]/20 py-1 md:py-2 px-1.5 md:px-6">
-          <div className="flex items-center bg-[#1a1a2e] rounded p-0.5 border border-[#3a3a5e] shadow-md">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded"><ChevronLeft className="w-6 h-6 text-blue-400" /></button>
-            <span className="text-xl md:text-3xl font-black px-4 min-w-[120px] md:min-w-[180px] text-center text-white tabular-nums">
-              {format(currentMonth, 'yyyy. MM', { locale: ko })}
-            </span>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded"><ChevronRight className="w-6 h-6 text-blue-400" /></button>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={exportToExcel} className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-emerald-700 border border-emerald-500/50 rounded text-white shadow-sm" title="월간 저장"><FileDown className="w-6 h-6 md:w-9 md:h-9" /></button>
-            <label className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-[#1a1a2e] border border-[#3a3a5e] rounded cursor-pointer hover:bg-[#3a3a5e]" title="엑셀 업로드">
-              <FileUp className="w-6 h-6 md:w-9 md:h-9 text-emerald-400" />
-              <input type="file" ref={fileInputRef} onChange={importFromExcel} accept=".xlsx, .xls" className="hidden" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] mx-0 mb-1.5 md:mb-6">
-        <div className="grid grid-cols-7 gap-px md:gap-1 bg-[#252545] min-h-full">
-          {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-            <div 
-              key={day} 
-              className="text-center font-black py-1.5 md:py-2 text-[10px] md:text-sm bg-[#1a1a2e]" 
-              style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}
-            >
-              {day}
-            </div>
-          ))}
-
-          {calendarDays.map((day) => {
-            const daySchedules = schedules.filter(s => isSameDay(new Date(s.date), day));
-            const isCurrentMonth = isSameMonth(day, monthStart);
-            const { isRedDay, isSaturday, label } = getDayStatus(day);
-            let dayColor = COLORS.TEXT_PRIMARY;
-            if (isRedDay) dayColor = COLORS.SUNDAY; else if (isSaturday) dayColor = COLORS.SATURDAY;
-            if (!isCurrentMonth) dayColor = 'rgba(156, 163, 175, 0.1)';
-
-            return (
-              <div 
-                key={day.toString()} 
-                onClick={() => { 
-                  if (mode === 'normal') onDateClick(day); 
-                  else if (mode === 'copy') handleCopyAction(day); 
-                  else if (mode === 'delete') handleDeleteAction(day); 
-                }} 
-                className={`
-                  min-h-[90px] md:min-h-[110px] lg:min-h-[130px]
-                  p-1.5 md:p-2 
-                  border border-[#3a3a5e]/70
-                  transition-all cursor-pointer 
-                  flex flex-col relative group
-                  ${isCurrentMonth 
-                    ? 'bg-[#1a1a2e]' 
-                    : 'bg-[#0f0f1a] opacity-50'
-                  }
-                  ${mode === 'delete' && daySchedules.length > 0 
-                    ? 'hover:bg-rose-900/30 hover:border-rose-600' 
-                    : 'hover:border-blue-500/70 hover:bg-[#252545]'
-                  }
-                  ${isSameDay(day, new Date()) 
-                    ? 'ring-2 ring-blue-500/70 shadow-[0_0_12px_rgba(59,130,246,0.3)]' 
-                    : ''
-                  }
-                `}
-              >
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl md:text-2xl font-black" style={{ color: dayColor }}>
-                    {format(day, 'd')}
-                  </span>
-                  {isCurrentMonth && label && (
-                    <span className="text-[9px] md:text-xs font-bold truncate text-red-400/90">
-                      {label}
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-1 space-y-1 overflow-hidden flex-1">
-                  {daySchedules.slice(0, 4).map((s) => (
-                    <div 
-                      key={s.id} 
-                      className="text-[9px] md:text-xs px-1.5 py-0.5 bg-blue-900/20 text-blue-200 rounded border border-blue-800/30 truncate font-medium"
-                    >
-                      {s.title}
-                    </div>
-                  ))}
-                  {daySchedules.length > 4 && (
-                    <div className="text-[9px] text-gray-500 pl-1 font-black">
-                      +{daySchedules.length - 4}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {clipboard.length > 0 && mode === 'copy' && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 px-6 py-3 bg-[#2c2c2e] text-cyan-400 rounded-full shadow-2xl font-black border border-cyan-900/60 text-sm">
-            <ClipboardCheck className="w-5 h-5" /> {clipboard.length}개 복사 대기 중
-          </div>
+    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-0.5 text-gray-200">
+      {isLoading && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col items-center justify-center backdrop-blur-lg">
+          <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-2" />
+          <p className="text-xl font-black text-white">AI 데이터 추출 중...</p>
         </div>
       )}
+
+      <div className="flex flex-col w-full mb-1">
+        <div className="flex items-center justify-between w-full h-10">
+          <div className="flex-1 overflow-hidden">
+            {isEditingTitle ? (
+              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+            ) : (
+              /* 수정: w-fit 적용 */
+              <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" onClick={() => setIsEditingTitle(true)}>{memberTitle}</h2>
+            )}
+          </div>
+          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 scale-100">
+            <button onClick={handleClearAll} className="p-1.5 text-red-500 hover:bg-[#2c2c2e] rounded"><Eraser className="w-5 h-5" /></button>
+            <button onClick={addMember} className="p-1.5 text-blue-500 hover:bg-[#2c2c2e] rounded"><UserPlus className="w-5 h-5" /></button>
+            <button onClick={handleExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded"><FileDown className="w-5 h-5" /></button>
+            <label className="p-1.5 text-emerald-500 cursor-pointer hover:bg-[#2c2c2e] rounded"><FileUp className="w-5 h-5" /><input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => { const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; readExcel(e.target.files![0]).then(d => processImportedData(d, mode)); e.target.value=''; }} /></label>
+            <label className="p-1.5 text-blue-400 cursor-pointer hover:bg-[#2c2c2e] rounded"><ImageIcon className="w-5 h-5" /><input type="file" className="hidden" accept="image/*" ref={fileInputRef} onChange={(e) => { const file = e.target.files![0]; if(!file) return; const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; setIsLoading(true); const reader = new FileReader(); reader.onload = async (ev) => { const base64 = (ev.target?.result as string).split(',')[1]; try { const ext = await extractMembersFromImage(base64, file.type); processImportedData(ext, mode); } catch { alert("에러"); } finally { setIsLoading(false); } }; reader.readAsDataURL(file); e.target.value=''; }} /></label>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1.5">
+          <div className="flex gap-1">
+            {sortButtons.map(btn => (
+              <button key={btn.key} onClick={() => handleSortToggle(btn.key)} className={`p-1.5 min-w-[50px] md:min-w-[70px] flex items-center justify-center rounded border text-xs md:text-base font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white shadow-md' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+                {btn.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSendSMS} className="p-1.5 bg-orange-600/20 border border-orange-500/50 rounded text-orange-400 transition-transform active:scale-95 shadow-sm"><SendHorizontal className="w-5 h-5" /></button>
+            <div className="flex items-center bg-[#1a1a2e] px-3 py-1.5 rounded border border-[#3a3a5e] font-black text-sm md:text-lg shadow-inner">
+              <span className="text-blue-400">선택 {selectedIds.size}</span>
+              <span className="text-gray-700 mx-2">|</span>
+              <span className="text-gray-300">전체 {members.length}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e]">
+        <table className="w-full text-left border-collapse table-fixed min-w-[450px]">
+          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[11px] md:text-sm z-10">
+            <tr className="border-b border-[#3a3a5e]">
+              <th className="p-1.5 w-8 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.size === members.length && members.length > 0} onChange={toggleAll} /></th>
+              <th className="p-1.5 w-8 text-center">N</th>
+              <th className="p-1.5 w-[15%]">성명</th>
+              <th className="p-1.5 w-[33%]">전화번호</th>
+              <th className="p-1.5 w-[20%] md:w-auto">주소</th>
+              <th className="p-1.5 w-8 text-center">비</th>
+              <th className="p-1.5 w-8 text-center">출</th>
+              <th className="p-1.5 w-8 text-center">가</th>
+              <th className="p-1.5 w-14 text-center">작업</th>
+            </tr>
+          </thead>
+          <tbody className="text-xs md:text-base font-bold">
+            {sortedMembers.map((m, index) => {
+              const isEditing = editingId === m.id;
+              return (
+                <tr key={m.id} className={`border-b border-[#2c2c2e] ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''} hover:bg-white/5`}>
+                  <td className="p-1.5 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.has(m.id)} onChange={() => { const next = new Set(selectedIds); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); setSelectedIds(next); }} /></td>
+                  <td className="p-1.5 text-center text-gray-600 text-[10px] md:text-xs">{index + 1}</td>
+                  <td className="p-1.5 truncate">
+                    {isEditing ? (
+                      <input ref={index === 0 ? nameInputRef : null} className="bg-[#2c2c2e] text-white w-full outline-none border-b border-blue-500" value={m.name} onChange={(e) => updateMember(m.id, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setEditingId(null)} />
+                    ) : (
+                      <span className="text-white">{m.name}</span>
+                    )}
+                  </td>
+                  <td className="p-1.5 truncate text-blue-300">
+                    {isEditing ? (
+                      <input className="bg-[#2c2c2e] w-full outline-none border-b border-blue-500" value={m.phone} onChange={(e) => updateMember(m.id, 'phone', e.target.value)} maxLength={13} />
+                    ) : (
+                      m.phone
+                    )}
+                  </td>
+                  <td className="p-1.5 truncate text-gray-500">
+                    {isEditing ? (
+                      <input className="bg-[#2c2c2e] w-full outline-none border-b border-blue-500" value={m.address} onChange={(e) => updateMember(m.id, 'address', e.target.value)} />
+                    ) : (
+                      m.address
+                    )}
+                  </td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded transition-colors ${m.fee ? 'text-emerald-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded transition-colors ${m.attendance ? 'text-amber-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded transition-colors ${m.joined ? 'text-rose-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center pr-1">
+                    <div className="flex justify-center gap-1.5">
+                      <button onClick={() => setEditingId(isEditing ? null : m.id)} className="text-blue-400 p-1 hover:bg-[#2c2c2e] rounded">{isEditing ? <Check className="w-4 h-4"/> : <Edit2 className="w-4 h-4"/>}</button>
+                      <button onClick={() => deleteMember(m.id)} className="text-red-500 p-1 hover:bg-[#2c2c2e] rounded"><Trash2 className="w-4 h-4"/></button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
 
-export default CalendarView;
+export default MemberView;
