@@ -63,8 +63,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
     <header className="sticky top-0 z-50 bg-[#1a1a2e] border-b border-[#3a3a5e] p-4 flex flex-col shadow-2xl transition-all duration-300 gap-3">
       
       <div className="flex items-center justify-between w-full">
-        {/* 타이틀 영역이 공간을 더 많이 쓸 수 있도록 flex-grow 강화 */}
-        <div className="flex-[2] flex justify-start pl-0 pr-1 overflow-hidden">
+        <div className="flex-grow flex justify-start pl-0 pr-2 overflow-hidden">
           {isEditingTitle ? (
             <input
               autoFocus
@@ -76,8 +75,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             />
           ) : (
             <h1 
-              /* 모바일에서 24px 정도로 키우고 자간을 조여 균형을 맞춤 */
-              className="text-[24px] sm:text-3xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
+              className="text-[26px] sm:text-3xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
               onClick={() => setIsEditingTitle(true)}
               style={{ letterSpacing: '-0.07em' }} 
             >
@@ -86,12 +84,11 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
           )}
         </div>
 
-        {/* 날짜/시간 영역의 최소 폭을 줄여 타이틀 공간 확보 */}
-        <div className="flex-1 flex flex-col text-right leading-tight shrink-0 min-w-[100px] md:min-w-[220px]">
-          <span className="text-blue-400 text-[10px] md:text-xl font-bold whitespace-nowrap">
+        <div className="flex flex-col text-right leading-none shrink-0 min-w-[110px] md:min-w-[220px]">
+          <span className="text-blue-400 text-[11px] md:text-xl font-bold whitespace-nowrap mb-1">
             {formatDate(currentTime)}
           </span>
-          <span className="text-blue-400 text-sm md:text-4xl font-black tracking-tighter whitespace-nowrap tabular-nums">
+          <span className="text-blue-400 text-lg md:text-4xl font-black tracking-tighter whitespace-nowrap tabular-nums">
             {formatTime(currentTime)}
           </span>
         </div>
@@ -131,15 +128,17 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-end text-blue-400 text-[10px] md:text-lg font-bold whitespace-nowrap space-x-1">
+              {/* 위치 정보 글씨 크기 상향 */}
+              <div className="flex items-center justify-end text-blue-400 text-[12px] md:text-lg font-bold whitespace-nowrap space-x-1 mb-0.5">
                 <span className="text-blue-500">{weather.minTemp}°</span>
                 <span className="text-gray-500">/</span>
                 <span className="text-rose-500">{weather.maxTemp}°</span>
-                <MapPin className="w-3 h-3 ml-0.5 text-blue-500" />
+                <MapPin className="w-3.5 h-3.5 ml-0.5 text-blue-500" />
                 <span>{weather.location}</span>
               </div>
-              <div className="flex items-center justify-end text-emerald-400 text-[13px] md:text-[28px] font-black tracking-tighter whitespace-nowrap">
-                <CloudSun className="w-4 h-4 md:w-8 md:h-8 mr-1" />
+              {/* 기온/날씨 정보 글씨 크기 상향 */}
+              <div className="flex items-center justify-end text-emerald-400 text-[16px] md:text-[28px] font-black tracking-tighter whitespace-nowrap">
+                <CloudSun className="w-5 h-5 md:w-8 md:h-8 mr-1.5" />
                 <span>{weather.temp}°C {weather.condition}</span>
               </div>
             </>
