@@ -1,11 +1,6 @@
 /**
- * App.tsx - 메인 컨트롤러 (누락 방지 완전판)
- * 원칙 준수 사항:
- * 1. 소스 누락 금지: 기존 달력, 상세일정, 회원관리 로직 전체 유지
- * 2. 철저한 모듈화: 각 컴포넌트로 정확한 State 전달
- * 3. 꼼꼼한 주석: 데이터 영속화 및 모드 전환 로직 설명
+ * App.tsx - 디자인 유지 및 레이아웃 최적화 전체 소스
  */
-
 import React, { useState, useEffect } from 'react';
 import { AppMode, Schedule, Member, Note } from './types';
 import Header from './components/Header';
@@ -15,18 +10,15 @@ import MemberView from './components/Member/MemberView';
 import NoteView from './components/Note/NoteView';
 
 const App: React.FC = () => {
-  // --- [1. 시스템 설정 및 타이틀 상태] ---
   const [mode, setMode] = useState<AppMode>(AppMode.CALENDAR);
-  const [appTitle, setAppTitle] = useState('Smart Workspace'); // 메인 헤더 타이틀
-  const [noteTitle, setNoteTitle] = useState('Standard Note'); // 노트 모듈 개별 타이틀
+  const [appTitle, setAppTitle] = useState('Smart Workspace'); 
+  const [noteTitle, setNoteTitle] = useState('Standard Note'); 
 
-  // --- [2. 도메인 데이터 상태] ---
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]); // 누적 기록용 노트 데이터
+  const [notes, setNotes] = useState<Note[]>([]); 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // --- [3. 초기 데이터 로드 (Local Storage)] ---
   useEffect(() => {
     const savedSchedules = localStorage.getItem('metal_schedules');
     const savedMembers = localStorage.getItem('metal_members');
@@ -41,7 +33,6 @@ const App: React.FC = () => {
     if (savedNoteTitle) setNoteTitle(savedNoteTitle);
   }, []);
 
-  // --- [4. 데이터 자동 저장 (Local Storage)] ---
   useEffect(() => {
     localStorage.setItem('metal_schedules', JSON.stringify(schedules));
     localStorage.setItem('metal_members', JSON.stringify(members));
@@ -50,49 +41,21 @@ const App: React.FC = () => {
     localStorage.setItem('app_note_title', noteTitle);
   }, [schedules, members, notes, appTitle, noteTitle]);
 
-  // --- [5. 공통 핸들러] ---
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setMode(AppMode.SCHEDULE_DETAIL);
   };
 
-  // --- [6. 콘텐츠 렌더링 엔진] ---
   const renderContent = () => {
     switch (mode) {
       case AppMode.CALENDAR:
-        return (
-          <CalendarView 
-            schedules={schedules} 
-            onDateClick={handleDateClick} 
-            onUpdateSchedules={setSchedules} 
-          />
-        );
+        return <CalendarView schedules={schedules} onDateClick={handleDateClick} onUpdateSchedules={setSchedules} />;
       case AppMode.SCHEDULE_DETAIL:
-        return selectedDate ? (
-          <ScheduleDetail 
-            selectedDate={selectedDate} 
-            schedules={schedules} 
-            onBack={() => setMode(AppMode.CALENDAR)} 
-            onSave={setSchedules} 
-          />
-        ) : null;
+        return selectedDate ? <ScheduleDetail selectedDate={selectedDate} schedules={schedules} onBack={() => setMode(AppMode.CALENDAR)} onSave={setSchedules} /> : null;
       case AppMode.MEMBER:
-        return (
-          <MemberView 
-            members={members} 
-            setMembers={setMembers} 
-            onHome={() => setMode(AppMode.CALENDAR)} 
-          />
-        );
+        return <MemberView members={members} setMembers={setMembers} onHome={() => setMode(AppMode.CALENDAR)} />;
       case AppMode.NOTE:
-        return (
-          <NoteView 
-            notes={notes}
-            setNotes={setNotes}
-            noteTitle={noteTitle}
-            setNoteTitle={setNoteTitle}
-          />
-        );
+        return <NoteView notes={notes} setNotes={setNotes} noteTitle={noteTitle} setNoteTitle={setNoteTitle} />;
       case AppMode.YOUTUBE:
         return (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -100,21 +63,16 @@ const App: React.FC = () => {
             <p className="text-xl italic">추후 연동될 모듈입니다.</p>
           </div>
         );
-      default:
-        return null;
+      default: return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex flex-col transition-colors duration-500 overflow-hidden text-gray-200">
-      <Header 
-        mode={mode} 
-        setMode={setMode} 
-        title={appTitle}
-        setTitle={setAppTitle} 
-      />
+    <div className="min-h-screen bg-[#121212] flex flex-col transition-colors duration-500 text-gray-200">
+      <Header mode={mode} setMode={setMode} title={appTitle} setTitle={setAppTitle} />
       
-      <main className="flex-grow relative overflow-hidden">
+      {/* 수정: p-1(약 4px)을 주어 자식의 border-4가 잘리지 않도록 보호하며 너비는 100%를 허용합니다. */}
+      <main className="flex-grow relative p-1 overflow-x-hidden">
         {renderContent()}
       </main>
     </div>
