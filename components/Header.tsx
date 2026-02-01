@@ -16,10 +16,11 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
 
-  // 컴포넌트 마운트 시 부모의 title 상태 자체를 변경 시도
+  // 컴포넌트 마운트 시 스펠링 교정 및 부모의 title 상태 변경 시도
   useEffect(() => {
-    if (!title || title === "기본 타이틀" || title === "New Project") {
-      setTitle("Metal Blue WorkScpace");
+    const correctedTitle = "Metal Blue WorkSpace";
+    if (!title || title === "기본 타이틀" || title === "New Project" || title === "Smart Workspace" || title === "Metal Blue WorkScpace") {
+      setTitle(correctedTitle);
     }
   }, []);
 
@@ -57,14 +58,15 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
     return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
   };
 
-  // 표시할 타이틀 결정 (우선순위: 현재 title 값 -> 없으면 지정한 이름)
-  const displayTitle = title || "Metal Blue WorkScpace";
+  // 표시할 타이틀 결정 (스펠링 교정 반영)
+  const displayTitle = title || "Metal Blue WorkSpace";
 
   return (
     <header className="sticky top-0 z-50 bg-[#1a1a2e] border-b border-[#3a3a5e] p-4 flex flex-col shadow-2xl transition-all duration-300 gap-3">
       
       <div className="flex items-center justify-between w-full">
-        <div className="flex-1 flex justify-start pr-2 overflow-hidden">
+        {/* pl-0으로 수정하여 왼쪽 여백 제거 */}
+        <div className="flex-1 flex justify-start pl-0 pr-2 overflow-hidden">
           {isEditingTitle ? (
             <input
               autoFocus
