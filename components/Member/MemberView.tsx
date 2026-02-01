@@ -73,9 +73,9 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     return '010--';
   };
 
-  // 1. 전화번호 입력란 공백 제거 반영
+  // 1. 전화번호 입력란 공백 제거 반영 및 입력 로직 수정
   const handlePhoneChange = (id: string, part: 'mid' | 'end', value: string, currentPhone: string) => {
-    const digits = value.replace(/\s/g, '').replace(/\D/g, '').slice(0, 4); // 공백 및 숫자 외 제거
+    const digits = value.replace(/\s/g, '').replace(/\D/g, '').slice(0, 4);
     const parts = (currentPhone || '010--').split('-');
     
     let mid = (parts[1] || '').trim();
@@ -129,7 +129,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
     if (mode === 'overwrite') {
       setMembers(formattedData.map((m, idx) => ({ ...m, sn: idx + 1 })));
-      setSelectedIds(new Set()); // 데이터 교체 시 선택 초기화
+      setSelectedIds(new Set());
     } else {
       const currentPhoneKeys = new Set(members.map(m => normalizeTo8Digits(m.phone)));
       const nonDuplicates = formattedData.filter(m => {
@@ -184,8 +184,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     if (window.confirm("삭제하시겠습니까?")) {
       setMembers(members.filter(m => m.id !== id));
       if (editingId === id) setEditingId(null);
-      
-      // 개별 삭제 시 선택 목록에서도 제거하여 카운트 정합성 유지
       const next = new Set(selectedIds);
       next.delete(id);
       setSelectedIds(next);
@@ -207,7 +205,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   // 2. 선택된 회원 수 정합성을 위해 실제 members에 존재하는 ID만 필터링한 값 계산
   const actualSelectedCount = useMemo(() => {
     const memberIds = new Set(members.map(m => m.id));
-    return Array.from(selectedIds).filter(id => memberIds.has(id)).length;
+    let count = 0;
+    selectedIds.forEach(id => {
+      if (memberIds.has(id)) count++;
+    });
+    return count;
   }, [selectedIds, members]);
 
   return (
@@ -290,9 +292,9 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                     {isEditing ? (
                       <div className="flex items-center gap-0">
                         <span className="text-gray-500">010-</span>
-                        <input ref={phoneMidRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={parts => (m.phone.split('-')[1] || '')} onChange={(e) => handlePhoneChange(m.id, 'mid', e.target.value, m.phone)} maxLength={4} />
+                        <input ref={phoneMidRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={phoneParts[1] || ''} onChange={(e) => handlePhoneChange(m.id, 'mid', e.target.value, m.phone)} maxLength={4} />
                         <span className="text-gray-500">-</span>
-                        <input ref={phoneEndRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={parts => (m.phone.split('-')[2] || '')} onChange={(e) => handlePhoneChange(m.id, 'end', e.target.value, m.phone)} onKeyDown={(e) => handlePhoneKeyDown(e, 'end')} maxLength={4} />
+                        <input ref={phoneEndRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={phoneParts[2] || ''} onChange={(e) => handlePhoneChange(m.id, 'end', e.target.value, m.phone)} onKeyDown={(e) => handlePhoneKeyDown(e, 'end')} maxLength={4} />
                       </div>
                     ) : (
                       m.phone
