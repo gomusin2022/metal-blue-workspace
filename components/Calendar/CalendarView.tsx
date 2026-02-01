@@ -130,7 +130,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
     <div className="flex flex-col h-full bg-[#121212] text-gray-200 w-full">
       <div className="flex flex-col w-full mb-1 px-0">
 
-        <div className="flex items-center justify-between w-full h-10 px-1.5 md:px-6">
+        {/* 첫 번째 줄: 타이틀 및 작업 모드 (md:h-16으로 늘려 아이콘 침범 해결) */}
+        <div className="flex items-center justify-between w-full h-10 md:h-16 px-1.5 md:px-6">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
               <input 
@@ -164,7 +165,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
           </div>
         </div>
 
-        <div className="flex items-center justify-between w-full h-12 border-t border-[#3a3a5e]/20 pt-1.5 px-1.5 md:px-6">
+        {/* 두 번째 줄: 날짜 이동 및 엑셀 도구 (md:h-16으로 늘려 첫 번째 줄과 높이 통일) */}
+        <div className="flex items-center justify-between w-full h-12 md:h-16 border-t border-[#3a3a5e]/20 pt-1.5 px-1.5 md:px-6">
           <div className="flex items-center bg-[#1a1a2e] rounded p-0.5 border border-[#3a3a5e] shadow-md">
             <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded"><ChevronLeft className="w-6 h-6 text-blue-400" /></button>
             <span className="text-xl md:text-3xl font-black px-4 min-w-[120px] md:min-w-[180px] text-center text-white tabular-nums">
@@ -185,7 +187,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
 
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] mx-0 mb-1.5 md:mb-6">
         <div className="grid grid-cols-7 gap-px md:gap-1 bg-[#252545] min-h-full">
-          {/* 요일 글씨 크기 40% 확대 적용 (text-[10px]->[14px], md:text-sm->md:text-[1.2rem]) */}
           {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
             <div 
               key={day} 
@@ -265,7 +266,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
         </div>
       </div>
 
-      {/* 최하단 문구 글씨 크기 40% 확대 적용 (text-[10px]->[14px], md:text-sm->md:text-[1.2rem]) */}
       <div className="pb-4 text-center text-blue-500/80 text-[14px] md:text-[1.2rem] font-bold tracking-tight">
         This app was developed by Yongkyu Kim in January 2026
       </div>
