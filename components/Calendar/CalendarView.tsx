@@ -127,8 +127,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    /* 수정: px-2와 mx-0.5를 추가하여 좌우 밀림 방지 및 보더 시인성 확보 */
-    <div className={`flex flex-col h-full bg-[#121212] px-2 md:px-6 pt-0 pb-1.5 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] mx-0.5
+    /* 수정 사항: 
+       1. ml-2 (좌측 마진)를 주어 확실히 오른쪽으로 밀어냄
+       2. pl-4 (좌측 패딩)을 우측보다 더 주어 일요일 칸의 보더 간섭 방지
+       3. w-[calc(100%-8px)] 효과를 위해 mx-2와 mr-2를 적절히 배분 
+    */
+    <div className={`flex flex-col h-full bg-[#121212] pl-4 pr-3 md:pl-8 md:pr-6 pt-0 pb-2 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] ml-2 mr-1
       ${mode === 'copy' ? 'border-blue-500/20' : 
         mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
     >
