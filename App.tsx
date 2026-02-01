@@ -1,7 +1,6 @@
 /**
- * App.tsx - 메인 컨트롤러 (화면 꽉 찬 레이아웃 복구판)
+ * App.tsx - 레이아웃 안정화 및 공간 확보 버전
  */
-
 import React, { useState, useEffect } from 'react';
 import { AppMode, Schedule, Member, Note } from './types';
 import Header from './components/Header';
@@ -11,22 +10,20 @@ import MemberView from './components/Member/MemberView';
 import NoteView from './components/Note/NoteView';
 
 const App: React.FC = () => {
-  // --- [1. 상태 관리] ---
   const [mode, setMode] = useState<AppMode>(AppMode.CALENDAR);
-  const [appTitle, setAppTitle] = useState('Smart Workspace'); 
-  const [noteTitle, setNoteTitle] = useState('Standard Note'); 
+  const [appTitle, setAppTitle] = useState('Smart Workspace');
+  const [noteTitle, setNoteTitle] = useState('Standard Note');
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]); 
+  const [notes, setNotes] = useState<Note[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // --- [2. 데이터 로드 및 저장] ---
   useEffect(() => {
     const savedSchedules = localStorage.getItem('metal_schedules');
     const savedMembers = localStorage.getItem('metal_members');
     const savedNotes = localStorage.getItem('metal_notes');
-    const savedAppTitle = localStorage.getItem('app_main_title'); 
+    const savedAppTitle = localStorage.getItem('app_main_title');
     const savedNoteTitle = localStorage.getItem('app_note_title');
     
     if (savedSchedules) setSchedules(JSON.parse(savedSchedules));
@@ -62,7 +59,7 @@ const App: React.FC = () => {
       case AppMode.YOUTUBE:
         return (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <h2 className="text-4xl font-black mb-4 tracking-tighter">YOUTUBE</h2>
+            <h2 className="text-4xl font-black mb-4 tracking-tighter text-white">YOUTUBE</h2>
             <p className="text-xl italic">추후 연동될 모듈입니다.</p>
           </div>
         );
@@ -74,10 +71,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#121212] flex flex-col transition-colors duration-500 text-gray-200">
       <Header mode={mode} setMode={setMode} title={appTitle} setTitle={setAppTitle} />
       
-      {/* [해결책] main에 p-1(약 4px)을 주어 자식의 border-4가 잘리지 않을 공간을 부모가 확보합니다. 
-        너비는 다시 w-full 수준으로 꽉 차게 복구됩니다.
-      */}
-      <main className="flex-grow relative p-1 overflow-x-hidden">
+      {/* 핵심 수정: p-1.5 패딩을 주어 자식의 4px 보더가 잘리지 않게 보호하고, overflow를 제어합니다. */}
+      <main className="flex-grow relative p-1.5 overflow-hidden">
         {renderContent()}
       </main>
     </div>
