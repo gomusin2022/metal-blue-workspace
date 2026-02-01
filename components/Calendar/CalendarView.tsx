@@ -127,27 +127,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
   };
 
   return (
-    /* 최종 레이아웃 교정 포인트:
-       1. w-full & m-0: MemberView와 동일하게 너비 제약 해제
-       2. px-3: 보더 4px + 패딩 12px = 총 16px로 Header(p-4)와 타이틀 시작선 일치
-       3. box-border: 테두리 두께가 100% 너비를 넘지 않도록 고정
-    */
-    <div className={`flex flex-col h-full bg-[#121212] px-3 pt-0 pb-4 text-gray-200 transition-all duration-500 border-4 rounded-[2rem] w-full m-0 box-border
-      ${mode === 'copy' ? 'border-blue-500/20' : 
-        mode === 'delete' ? 'border-rose-500/20' : 'border-transparent'}`}
-    >
+    <div className="flex flex-col h-full bg-[#121212] px-4 pt-0 pb-4 text-gray-200 w-full m-0">
       <div className="flex flex-col w-full mb-1">
         <div className="flex items-center justify-between w-full h-10">
-          <div className="flex-1 flex justify-start pr-2 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
-              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-xs" value={calendarTitle} onChange={(e) => setCalendarTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+              <input 
+                autoFocus 
+                className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" 
+                value={calendarTitle} 
+                onChange={(e) => setCalendarTitle(e.target.value)} 
+                onBlur={() => setIsEditingTitle(false)} 
+                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} 
+              />
             ) : (
-              <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter whitespace-nowrap w-fit hover:text-blue-400 transition-colors" onClick={() => setIsEditingTitle(true)}>{calendarTitle}</h2>
+              <h2 
+                className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" 
+                onClick={() => setIsEditingTitle(true)}
+              >
+                {calendarTitle}
+              </h2>
             )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] shadow-lg">
+            <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg">
               <button onClick={() => { setMode('normal'); setClipboard([]); }} className={`p-1.5 rounded transition-all ${mode === 'normal' ? 'bg-blue-600 shadow-md' : 'hover:bg-[#2c2c2e]'}`}><MousePointer2 className="w-5 h-5 text-amber-400" /></button>
               <button onClick={() => setMode('copy')} className={`p-1.5 rounded transition-all ${mode === 'copy' ? 'bg-blue-600 shadow-md' : 'hover:bg-[#2c2c2e]'}`}><Copy className="w-5 h-5 text-cyan-400" /></button>
               <button onClick={() => setMode('delete')} className={`p-1.5 rounded transition-all ${mode === 'delete' ? 'bg-blue-600 shadow-md' : 'hover:bg-[#2c2c2e]'}`}><Trash2 className="w-5 h-5 text-rose-500" /></button>
@@ -159,7 +163,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
           </div>
         </div>
 
-        <div className="flex items-center justify-between w-full h-12 border-t border-[#3a3a5e]/20 pt-1">
+        <div className="flex items-center justify-between w-full h-12 border-t border-[#3a3a5e]/20 pt-1.5">
           <div className="flex items-center bg-[#1a1a2e] rounded p-0.5 border border-[#3a3a5e] shadow-md">
             <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded"><ChevronLeft className="w-6 h-6 text-blue-400" /></button>
             <span className="text-xl md:text-3xl font-black px-4 min-w-[120px] md:min-w-[180px] text-center text-white tabular-nums">
@@ -178,25 +182,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
         </div>
       </div>
 
-      <div className="flex-grow grid grid-cols-7 gap-1 md:gap-2 overflow-auto">
-        {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-          <div key={day} className="text-center font-black py-0.5 text-[10px] md:text-sm" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
-        ))}
-        {calendarDays.map((day) => {
-          const daySchedules = schedules.filter(s => isSameDay(new Date(s.date), day));
-          const isCurrentMonth = isSameMonth(day, monthStart);
-          const { isRedDay, isSaturday, label } = getDayStatus(day);
-          let dayColor = COLORS.TEXT_PRIMARY;
-          if (isRedDay) dayColor = COLORS.SUNDAY; else if (isSaturday) dayColor = COLORS.SATURDAY;
-          if (!isCurrentMonth) dayColor = 'rgba(156, 163, 175, 0.1)';
+      <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] p-2">
+        <div className="grid grid-cols-7 gap-1 md:gap-2">
+          {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
+            <div key={day} className="text-center font-black py-1 text-[10px] md:text-sm" style={{ color: idx === 0 ? COLORS.SUNDAY : idx === 6 ? COLORS.SATURDAY : '#6b7280' }}>{day}</div>
+          ))}
+          {calendarDays.map((day) => {
+            const daySchedules = schedules.filter(s => isSameDay(new Date(s.date), day));
+            const isCurrentMonth = isSameMonth(day, monthStart);
+            const { isRedDay, isSaturday, label } = getDayStatus(day);
+            let dayColor = COLORS.TEXT_PRIMARY;
+            if (isRedDay) dayColor = COLORS.SUNDAY; else if (isSaturday) dayColor = COLORS.SATURDAY;
+            if (!isCurrentMonth) dayColor = 'rgba(156, 163, 175, 0.1)';
 
-          return (
-            <div key={day.toString()} onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-30'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}>
-              <div className="flex items-baseline gap-1"><span className="text-lg md:text-xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>{isCurrentMonth && label && <span className="text-[7px] md:text-[9px] font-bold truncate" style={{ color: COLORS.SUNDAY }}>{label}</span>}</div>
-              <div className="mt-0.5 space-y-0.5 overflow-hidden">{daySchedules.slice(0, 3).map((s) => (<div key={s.id} className="text-[8px] md:text-[10px] px-1.5 py-0.5 bg-blue-600/10 text-blue-300 rounded-md truncate font-bold border border-blue-500/10">{s.title}</div>))}{daySchedules.length > 3 && <div className="text-[8px] text-gray-500 pl-1 font-black">+{daySchedules.length - 3}</div>}</div>
-            </div>
-          );
-        })}
+            return (
+              <div 
+                key={day.toString()} 
+                onClick={() => { if (mode === 'normal') onDateClick(day); else if (mode === 'copy') handleCopyAction(day); else if (mode === 'delete') handleDeleteAction(day); }} 
+                className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded border transition-all cursor-pointer flex flex-col relative group ${isCurrentMonth ? 'bg-[#1a1a2e] border-[#3a3a5e]' : 'bg-transparent border-transparent opacity-30'} ${mode === 'delete' && daySchedules.length > 0 ? 'hover:bg-rose-900/20 hover:border-rose-500' : 'hover:border-blue-500 hover:bg-[#252545]'} ${isSameDay(day, new Date()) ? 'ring-2 ring-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}`}
+              >
+                <div className="flex items-baseline gap-1"><span className="text-lg md:text-xl font-black" style={{ color: dayColor }}>{format(day, 'd')}</span>{isCurrentMonth && label && <span className="text-[7px] md:text-[9px] font-bold truncate" style={{ color: COLORS.SUNDAY }}>{label}</span>}</div>
+                <div className="mt-0.5 space-y-0.5 overflow-hidden">{daySchedules.slice(0, 3).map((s) => (<div key={s.id} className="text-[8px] md:text-[10px] px-1.5 py-0.5 bg-blue-600/10 text-blue-300 rounded-md truncate font-bold border border-blue-500/10">{s.title}</div>))}{daySchedules.length > 3 && <div className="text-[8px] text-gray-500 pl-1 font-black">+{daySchedules.length - 3}</div>}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {clipboard.length > 0 && mode === 'copy' && (
