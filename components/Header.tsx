@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             />
           ) : (
             <h1 
-              className="text-[26px] sm:text-3xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
+              className="text-[26px] sm:text-3xl md:text-5xl lg:text-6xl font-black cursor-pointer transition-all whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit bg-gradient-to-r from-cyan-200 via-blue-300 to-cyan-100 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(147,197,253,0.5)] hover:from-white hover:to-blue-200"
               onClick={() => setIsEditingTitle(true)}
               style={{ letterSpacing: '-0.07em' }} 
             >
