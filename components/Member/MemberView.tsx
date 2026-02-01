@@ -25,6 +25,10 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // 전화번호 자동 이동을 위한 Ref 추가
+  const phoneMidRef = useRef<HTMLInputElement>(null);
+  const phoneEndRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (members.length > 0 && !members[0].name) {
       nameInputRef.current?.focus();
@@ -63,6 +67,31 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     else if (cleanDigits.length <= 7) res = `${cleanDigits.slice(0, 3)}-${cleanDigits.slice(3)}`;
     else res = `${cleanDigits.slice(0, 3)}-${cleanDigits.slice(3, 7)}-${cleanDigits.slice(7, 11)}`;
     return res;
+  };
+
+  // 전화번호 세그먼트 입력 로직
+  const handlePhoneChange = (id: string, part: 'mid' | 'end', value: string, currentPhone: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 4);
+    const parts = (currentPhone || '010--').split('-');
+    
+    let mid = parts[1] || '';
+    let end = parts[2] || '';
+
+    if (part === 'mid') {
+      mid = digits;
+      if (digits.length === 4) phoneEndRef.current?.focus();
+    } else {
+      end = digits;
+    }
+
+    const newPhone = `010-${mid}-${end}`;
+    setMembers(members.map(m => m.id === id ? { ...m, phone: newPhone } : m));
+  };
+
+  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, part: 'mid' | 'end') => {
+    if (e.key === 'Backspace' && part === 'end' && (e.target as HTMLInputElement).value === '') {
+      phoneMidRef.current?.focus();
+    }
   };
 
   const handleExport = () => {
@@ -110,7 +139,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
     setSortCriteria([]);
     const newMember: Member = { 
-      id: crypto.randomUUID(), sn: 0, name: '', phone: '010-', address: '', 
+      id: crypto.randomUUID(), sn: 0, name: '', phone: '010--', address: '', 
       fee: false, attendance: false, joined: false 
     };
     setMembers([newMember, ...members]);
@@ -171,7 +200,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             {isEditingTitle ? (
               <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
             ) : (
-              /* 수정: w-fit 적용 */
               <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" onClick={() => setIsEditingTitle(true)}>{memberTitle}</h2>
             )}
           </div>
@@ -221,6 +249,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           <tbody className="text-xs md:text-base font-bold">
             {sortedMembers.map((m, index) => {
               const isEditing = editingId === m.id;
+              const phoneParts = (m.phone || '010--').split('-');
               return (
                 <tr key={m.id} className={`border-b border-[#2c2c2e] ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''} hover:bg-white/5`}>
                   <td className="p-1.5 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.has(m.id)} onChange={() => { const next = new Set(selectedIds); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); setSelectedIds(next); }} /></td>
@@ -234,7 +263,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                   </td>
                   <td className="p-1.5 truncate text-blue-300">
                     {isEditing ? (
-                      <input className="bg-[#2c2c2e] w-full outline-none border-b border-blue-500" value={m.phone} onChange={(e) => updateMember(m.id, 'phone', e.target.value)} maxLength={13} />
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">010-</span>
+                        <input ref={phoneMidRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={phoneParts[1] || ''} onChange={(e) => handlePhoneChange(m.id, 'mid', e.target.value, m.phone)} maxLength={4} />
+                        <span className="text-gray-500">-</span>
+                        <input ref={phoneEndRef} className="bg-[#2c2c2e] w-10 text-center outline-none border-b border-blue-500" value={phoneParts[2] || ''} onChange={(e) => handlePhoneChange(m.id, 'end', e.target.value, m.phone)} onKeyDown={(e) => handlePhoneKeyDown(e, 'end')} maxLength={4} />
+                      </div>
                     ) : (
                       m.phone
                     )}
