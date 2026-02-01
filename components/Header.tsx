@@ -16,9 +16,9 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
 
-  // 초기 타이틀 설정 (Metal Blue WorkScpace)
+  // 컴포넌트 마운트 시 부모의 title 상태 자체를 변경 시도
   useEffect(() => {
-    if (!title) {
+    if (!title || title === "기본 타이틀" || title === "New Project") {
       setTitle("Metal Blue WorkScpace");
     }
   }, []);
@@ -57,6 +57,9 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
     return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
   };
 
+  // 표시할 타이틀 결정 (우선순위: 현재 title 값 -> 없으면 지정한 이름)
+  const displayTitle = title || "Metal Blue WorkScpace";
+
   return (
     <header className="sticky top-0 z-50 bg-[#1a1a2e] border-b border-[#3a3a5e] p-4 flex flex-col shadow-2xl transition-all duration-300 gap-3">
       
@@ -66,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             <input
               autoFocus
               className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-2 py-1 text-2xl md:text-4xl font-black w-fit max-w-full outline-none text-white"
-              value={title}
+              value={displayTitle}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => setIsEditingTitle(false)}
               onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
@@ -76,7 +79,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
               className="text-2xl md:text-5xl lg:text-6xl font-black text-white cursor-pointer hover:text-blue-400 transition-colors whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter w-fit"
               onClick={() => setIsEditingTitle(true)}
             >
-              {title || "Metal Blue WorkScpace"}
+              {displayTitle}
             </h1>
           )}
         </div>
