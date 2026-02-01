@@ -34,12 +34,10 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
     }
   };
 
-  // 회원 관리 모드와 동일하게 합치기/덮어쓰기 로직 적용
   const onImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
 
-    // 사용자 선택 확인
     const isAppend = window.confirm("합치기(확인) / 덮어쓰기(취소)를 선택해주세요.");
 
     const r = new FileReader();
@@ -55,10 +53,8 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
         }));
 
         if (isAppend) {
-          // 합치기: 기존 데이터 상단에 추가
           setNotes(prev => [...importedData, ...prev]);
         } else {
-          // 덮어쓰기: 기존 데이터 삭제 후 교체
           setNotes(importedData);
         }
       } catch (error) {
@@ -66,7 +62,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
       }
     };
     r.readAsBinaryString(f);
-    e.target.value = ''; // 파일 선택 초기화
+    e.target.value = ''; 
   };
 
   const autoResize = (target: HTMLTextAreaElement) => {
@@ -84,11 +80,11 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-1 text-gray-200 overflow-hidden font-sans">
+    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-0.5 text-gray-200 overflow-hidden font-sans">
       
-      {/* 상단 타이틀바 (회원 모드와 규격 일치) */}
-      <div className="flex flex-col w-full mb-1.5">
-        <div className="flex items-center justify-between w-full h-9">
+      {/* 상단 타이틀바 (여백 mb-1로 최적화) */}
+      <div className="flex flex-col w-full mb-1">
+        <div className="flex items-center justify-between w-full h-10">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
               <input 
@@ -109,11 +105,12 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             )}
           </div>
           
-          <div className="flex bg-[#1a1a2e] p-1 rounded-xl border border-[#3a3a5e] shadow-lg shrink-0 transition-all">
-            <button onClick={onExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded-lg transition-colors" title="엑셀 내보내기">
+          {/* 타이틀 우측 아이콘: p-1.5, rounded 규격 통일 */}
+          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 transition-all">
+            <button onClick={onExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded transition-colors" title="엑셀 내보내기">
               <FileDown className="w-5 h-5" />
             </button>
-            <button onClick={() => fileRef.current?.click()} className="p-1.5 text-blue-400 hover:bg-[#2c2c2e] rounded-lg transition-colors" title="엑셀 가져오기">
+            <button onClick={() => fileRef.current?.click()} className="p-1.5 text-blue-400 hover:bg-[#2c2c2e] rounded transition-colors" title="엑셀 가져오기">
               <FileUp className="w-5 h-5" />
             </button>
             <input type="file" ref={fileRef} onChange={onImport} className="hidden" accept=".xlsx,.xls" />
@@ -121,8 +118,8 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
         </div>
       </div>
 
-      <div className="flex-grow overflow-y-auto space-y-4 px-1 mt-2 custom-scrollbar">
-        {/* 신규 입력 섹션: 기록/비움 아이콘 40% 축소 */}
+      <div className="flex-grow overflow-y-auto space-y-4 px-1 mt-1 custom-scrollbar">
+        {/* 신규 입력 섹션: 기록/비움 버튼을 문자전송 버튼 규격으로 변경 */}
         <div className="flex items-start gap-3 w-full bg-[#252535] border border-gray-700 rounded-2xl p-4 shadow-inner">
           <div className="flex-grow">
             <textarea 
@@ -133,12 +130,23 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             />
           </div>
           <div className="flex flex-col gap-2 shrink-0">
-            <button onClick={handleSave} className="w-14 h-14 bg-emerald-600 text-white rounded-xl font-black shadow-lg active:scale-95 flex flex-col items-center justify-center transition-all">
+            {/* 기록 버튼: 문자전송 버튼 스타일 적용 */}
+            <button 
+              onClick={handleSave} 
+              className="p-1.5 bg-emerald-600 border border-emerald-400/50 rounded text-white shadow-lg active:scale-95 flex flex-col items-center justify-center transition-all"
+              title="기록"
+            >
               <Save className="w-5 h-5" />
-              <span className="text-[10px]">기록</span>
+              <span className="text-[9px] font-black mt-0.5">기록</span>
             </button>
-            <button onClick={() => setNewInput('')} className="w-14 h-8 bg-gray-800 text-gray-500 rounded-lg font-bold text-[10px] flex items-center justify-center hover:text-white transition-colors">
-              <Eraser className="w-3.5 h-3.5 mr-1" /> 비움
+            {/* 비움 버튼: 문자전송 버튼 스타일 적용 */}
+            <button 
+              onClick={() => setNewInput('')} 
+              className="p-1.5 bg-gray-800 border border-gray-600/50 rounded text-gray-400 hover:text-white transition-colors flex flex-col items-center justify-center"
+              title="비움"
+            >
+              <Eraser className="w-5 h-5" />
+              <span className="text-[9px] font-black mt-0.5">비움</span>
             </button>
           </div>
         </div>
@@ -161,14 +169,32 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             </div>
 
             <div className="flex flex-col gap-1.5 shrink-0">
-              <button onClick={() => { if(editingId === note.id) { setNotes(notes.map(n => n.id === note.id ? {...n, content: editBuffer} : n)); setEditingId(null); } else { setEditingId(note.id); setEditBuffer(note.content); } }} className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center shadow-md active:scale-95">
+              {/* 리스트 내 액션 버튼: p-1.5, rounded 규격 통일 */}
+              <button 
+                onClick={() => { 
+                  if(editingId === note.id) { 
+                    setNotes(notes.map(n => n.id === note.id ? {...n, content: editBuffer} : n)); 
+                    setEditingId(null); 
+                  } else { 
+                    setEditingId(note.id); 
+                    setEditBuffer(note.content); 
+                  } 
+                }} 
+                className="p-1.5 bg-blue-600 text-white rounded flex items-center justify-center shadow-md active:scale-95"
+              >
                 <Check className="w-5 h-5" />
               </button>
-              <button onClick={() => { setEditingId(note.id); setEditBuffer(note.content); }} className="w-10 h-10 bg-gray-700 text-white rounded-lg flex items-center justify-center hover:bg-gray-600">
-                <Edit2 className="w-4 h-4" />
+              <button 
+                onClick={() => { setEditingId(note.id); setEditBuffer(note.content); }} 
+                className="p-1.5 bg-gray-700 text-white rounded flex items-center justify-center hover:bg-gray-600"
+              >
+                <Edit2 className="w-5 h-5" />
               </button>
-              <button onClick={() => { if(window.confirm("삭제하시겠습니까?")) setNotes(notes.filter(n => n.id !== note.id)) }} className="w-10 h-10 bg-red-900/50 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-800">
-                <Trash2 className="w-4 h-4" />
+              <button 
+                onClick={() => { if(window.confirm("삭제하시겠습니까?")) setNotes(notes.filter(n => n.id !== note.id)) }} 
+                className="p-1.5 bg-red-900/50 text-red-500 rounded flex items-center justify-center hover:bg-red-800"
+              >
+                <Trash2 className="w-5 h-5" />
               </button>
             </div>
           </div>

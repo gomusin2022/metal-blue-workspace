@@ -51,7 +51,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           if (valA !== valB) return valB - valA;
         }
       }
-      return 0; // 정렬 기준 없을 시 원본 순서
+      return 0;
     });
   }, [members, sortCriteria]);
 
@@ -157,7 +157,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-1 text-gray-200">
+    <div className="flex flex-col h-full bg-[#121212] p-1.5 md:p-6 pt-0.5 text-gray-200">
       {isLoading && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col items-center justify-center backdrop-blur-lg">
           <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-2" />
@@ -165,96 +165,100 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       )}
 
-      {/* 압축된 상단 타이틀바 */}
-      <div className="flex flex-col w-full mb-1.5">
-        <div className="flex items-center justify-between w-full h-9">
+      {/* 상단 제어 바 */}
+      <div className="flex flex-col w-full mb-1">
+        <div className="flex items-center justify-between w-full h-10">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
-              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded px-1.5 py-0.5 text-base font-black text-white outline-none w-full" value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-full" value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
             ) : (
               <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate" onClick={() => setIsEditingTitle(true)}>{memberTitle}</h2>
             )}
           </div>
-          <div className="flex bg-[#1a1a2e] p-0.5 rounded-lg border border-[#3a3a5e] shadow-lg shrink-0 scale-90 origin-right">
-            <button onClick={handleClearAll} className="p-1 text-red-500"><Eraser className="w-4.5 h-4.5" /></button>
-            <button onClick={addMember} className="p-1 text-blue-500"><UserPlus className="w-4.5 h-4.5" /></button>
-            <button onClick={handleExport} className="p-1 text-emerald-400"><FileDown className="w-4.5 h-4.5" /></button>
-            <label className="p-1 text-emerald-500 cursor-pointer"><FileUp className="w-4.5 h-4.5" /><input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => { const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; readExcel(e.target.files![0]).then(d => processImportedData(d, mode)); e.target.value=''; }} /></label>
-            <label className="p-1 text-blue-400 cursor-pointer"><ImageIcon className="w-4.5 h-4.5" /><input type="file" className="hidden" accept="image/*" ref={fileInputRef} onChange={(e) => { const file = e.target.files![0]; if(!file) return; const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; setIsLoading(true); const reader = new FileReader(); reader.onload = async (ev) => { const base64 = (ev.target?.result as string).split(',')[1]; try { const ext = await extractMembersFromImage(base64, file.type); processImportedData(ext, mode); } catch { alert("에러"); } finally { setIsLoading(false); } }; reader.readAsDataURL(file); e.target.value=''; }} /></label>
+          {/* 아이콘 버튼 5개: 문자전송버튼 규격(p-1.5, rounded)으로 확대 */}
+          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 scale-100">
+            <button onClick={handleClearAll} className="p-1.5 text-red-500 hover:bg-[#2c2c2e] rounded"><Eraser className="w-5 h-5" /></button>
+            <button onClick={addMember} className="p-1.5 text-blue-500 hover:bg-[#2c2c2e] rounded"><UserPlus className="w-5 h-5" /></button>
+            <button onClick={handleExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded"><FileDown className="w-5 h-5" /></button>
+            <label className="p-1.5 text-emerald-500 cursor-pointer hover:bg-[#2c2c2e] rounded"><FileUp className="w-5 h-5" /><input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => { const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; readExcel(e.target.files![0]).then(d => processImportedData(d, mode)); e.target.value=''; }} /></label>
+            <label className="p-1.5 text-blue-400 cursor-pointer hover:bg-[#2c2c2e] rounded"><ImageIcon className="w-5 h-5" /><input type="file" className="hidden" accept="image/*" ref={fileInputRef} onChange={(e) => { const file = e.target.files![0]; if(!file) return; const mode = window.confirm("합치기(확인) / 덮어쓰기(취소)") ? 'append' : 'overwrite'; setIsLoading(true); const reader = new FileReader(); reader.onload = async (ev) => { const base64 = (ev.target?.result as string).split(',')[1]; try { const ext = await extractMembersFromImage(base64, file.type); processImportedData(ext, mode); } catch { alert("에러"); } finally { setIsLoading(false); } }; reader.readAsDataURL(file); e.target.value=''; }} /></label>
           </div>
         </div>
 
-        {/* 정렬 및 인원 표시부 (간격 최소화) */}
-        <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
-          <div className="flex gap-0.5">
+        {/* 정렬 및 인원 표시부 */}
+        <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1.5">
+          <div className="flex gap-1">
+            {/* 소트 버튼: 크기 확대, 글씨 40% 확대 */}
             {sortButtons.map(btn => (
-              <button key={btn.key} onClick={() => handleSortToggle(btn.key)} className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded border text-[9px] md:text-xs font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+              <button key={btn.key} onClick={() => handleSortToggle(btn.key)} className={`p-1.5 min-w-[50px] md:min-w-[70px] flex items-center justify-center rounded border text-xs md:text-base font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white shadow-md' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
                 {btn.label}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleSendSMS} className="p-1.5 bg-orange-600/20 border border-orange-500/50 rounded text-orange-400 transition-transform active:scale-95"><SendHorizontal className="w-4.5 h-4.5" /></button>
-            <div className="flex items-center bg-[#1a1a2e] px-2 py-1 rounded border border-[#3a3a5e] font-black text-[10px] md:text-sm shadow-inner">
+            <button onClick={handleSendSMS} className="p-1.5 bg-orange-600/20 border border-orange-500/50 rounded text-orange-400 transition-transform active:scale-95 shadow-sm"><SendHorizontal className="w-5 h-5" /></button>
+            {/* 인원 표시: 글씨 40% 확대 */}
+            <div className="flex items-center bg-[#1a1a2e] px-3 py-1.5 rounded border border-[#3a3a5e] font-black text-sm md:text-lg shadow-inner">
               <span className="text-blue-400">선택 {selectedIds.size}</span>
-              <span className="text-gray-700 mx-1.5">|</span>
+              <span className="text-gray-700 mx-2">|</span>
               <span className="text-gray-300">전체 {members.length}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 회원 목록 테이블 */}
+      {/* 회원 목록 테이블: 데이터 글씨 20% 확대 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e]">
-        <table className="w-full text-left border-collapse table-fixed min-w-[350px]">
-          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[9px] md:text-xs z-10">
+        <table className="w-full text-left border-collapse table-fixed min-w-[450px]">
+          <thead className="sticky top-0 bg-[#2c2c2e] text-blue-400 font-black text-[11px] md:text-sm z-10">
             <tr className="border-b border-[#3a3a5e]">
-              <th className="p-1 w-7 text-center"><input type="checkbox" className="w-3.5 h-3.5 accent-blue-500" checked={selectedIds.size === members.length && members.length > 0} onChange={toggleAll} /></th>
-              <th className="p-1 w-6 text-center">N</th>
-              <th className="p-1 w-[15%]">성명</th>
-              <th className="p-1 w-[33%]">전화번호</th>
-              <th className="p-1 w-[15%] md:w-auto">주소</th>
-              <th className="p-1 w-6 text-center">비</th>
-              <th className="p-1 w-6 text-center">출</th>
-              <th className="p-1 w-6 text-center">가</th>
-              <th className="p-1 w-11 text-center">작업</th>
+              <th className="p-1.5 w-8 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.size === members.length && members.length > 0} onChange={toggleAll} /></th>
+              <th className="p-1.5 w-8 text-center">N</th>
+              <th className="p-1.5 w-[15%]">성명</th>
+              <th className="p-1.5 w-[33%]">전화번호</th>
+              <th className="p-1.5 w-[20%] md:w-auto">주소</th>
+              <th className="p-1.5 w-8 text-center">비</th>
+              <th className="p-1.5 w-8 text-center">출</th>
+              <th className="p-1.5 w-8 text-center">가</th>
+              <th className="p-1.5 w-14 text-center">작업</th>
             </tr>
           </thead>
-          <tbody className="text-[10px] md:text-sm font-bold">
+          <tbody className="text-xs md:text-base font-bold">
             {sortedMembers.map((m, index) => {
               const isEditing = editingId === m.id;
               return (
-                <tr key={m.id} className={`border-b border-[#2c2c2e] ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`}>
-                  <td className="p-1 text-center"><input type="checkbox" className="w-3.5 h-3.5 accent-blue-500" checked={selectedIds.has(m.id)} onChange={() => { const next = new Set(selectedIds); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); setSelectedIds(next); }} /></td>
-                  <td className="p-1 text-center text-gray-600 text-[8px]">{index + 1}</td>
-                  <td className="p-1 truncate">
+                <tr key={m.id} className={`border-b border-[#2c2c2e] ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''} hover:bg-white/5`}>
+                  <td className="p-1.5 text-center"><input type="checkbox" className="w-4 h-4 accent-blue-500" checked={selectedIds.has(m.id)} onChange={() => { const next = new Set(selectedIds); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); setSelectedIds(next); }} /></td>
+                  <td className="p-1.5 text-center text-gray-600 text-[10px] md:text-xs">{index + 1}</td>
+                  <td className="p-1.5 truncate">
                     {isEditing ? (
                       <input ref={index === 0 ? nameInputRef : null} className="bg-[#2c2c2e] text-white w-full outline-none border-b border-blue-500" value={m.name} onChange={(e) => updateMember(m.id, 'name', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setEditingId(null)} />
                     ) : (
                       <span className="text-white">{m.name}</span>
                     )}
                   </td>
-                  <td className="p-1 truncate text-blue-300">
+                  <td className="p-1.5 truncate text-blue-300">
                     {isEditing ? (
                       <input className="bg-[#2c2c2e] w-full outline-none border-b border-blue-500" value={m.phone} onChange={(e) => updateMember(m.id, 'phone', e.target.value)} maxLength={13} />
                     ) : (
                       m.phone
                     )}
                   </td>
-                  <td className="p-1 truncate text-gray-500">
+                  <td className="p-1.5 truncate text-gray-500">
                     {isEditing ? (
                       <input className="bg-[#2c2c2e] w-full outline-none border-b border-blue-500" value={m.address} onChange={(e) => updateMember(m.id, 'address', e.target.value)} />
                     ) : (
                       m.address
                     )}
                   </td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded transition-colors ${m.fee ? 'text-emerald-500' : 'text-gray-400/40'}`}><Check className="w-3.5 h-3.5" /></button></td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded transition-colors ${m.attendance ? 'text-blue-500' : 'text-gray-400/40'}`}><Check className="w-3.5 h-3.5" /></button></td>
-                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded transition-colors ${m.joined ? 'text-indigo-500' : 'text-gray-400/40'}`}><Check className="w-3.5 h-3.5" /></button></td>
+                  {/* 회비: 기본 유지 / 출석: 노랑 / 가입: 핑크 */}
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'fee', !m.fee)} className={`p-1 rounded transition-colors ${m.fee ? 'text-emerald-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'attendance', !m.attendance)} className={`p-1 rounded transition-colors ${m.attendance ? 'text-amber-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
+                  <td className="p-0 text-center"><button onClick={() => updateMember(m.id, 'joined', !m.joined)} className={`p-1 rounded transition-colors ${m.joined ? 'text-rose-500' : 'text-gray-400/30'}`}><Check className="w-5 h-5" /></button></td>
                   <td className="p-0 text-center pr-1">
-                    <div className="flex justify-center gap-1">
-                      <button onClick={() => setEditingId(isEditing ? null : m.id)} className="text-blue-400">{isEditing ? <Check className="w-3.5 h-3.5"/> : <Edit2 className="w-3.5 h-3.5"/>}</button>
-                      <button onClick={() => deleteMember(m.id)} className="text-red-500"><Trash2 className="w-3.5 h-3.5"/></button>
+                    <div className="flex justify-center gap-1.5">
+                      <button onClick={() => setEditingId(isEditing ? null : m.id)} className="text-blue-400 p-1 hover:bg-[#2c2c2e] rounded">{isEditing ? <Check className="w-4 h-4"/> : <Edit2 className="w-4 h-4"/>}</button>
+                      <button onClick={() => deleteMember(m.id)} className="text-red-500 p-1 hover:bg-[#2c2c2e] rounded"><Trash2 className="w-4 h-4"/></button>
                     </div>
                   </td>
                 </tr>
