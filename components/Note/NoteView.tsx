@@ -110,16 +110,17 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             )}
           </div>
           
-          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 transition-all">
-            <button onClick={onExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded transition-colors"><FileDown className="w-5 h-5" /></button>
-            <button onClick={() => fileRef.current?.click()} className="p-1.5 text-blue-400 hover:bg-[#2c2c2e] rounded transition-colors"><FileUp className="w-5 h-5" /></button>
+          {/* gap-2.5를 적용하여 아이콘 간의 간격을 넓힘 */}
+          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg gap-2.5 shrink-0 transition-all">
+            <button onClick={onExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded transition-colors" title="내보내기"><FileDown className="w-5 h-5" /></button>
+            <button onClick={() => fileRef.current?.click()} className="p-1.5 text-blue-400 hover:bg-[#2c2c2e] rounded transition-colors" title="불러오기"><FileUp className="w-5 h-5" /></button>
             <input type="file" ref={fileRef} onChange={onImport} className="hidden" accept=".xlsx,.xls" />
           </div>
         </div>
       </div>
 
       <div className="flex-grow overflow-y-auto space-y-4 px-1 mt-1 custom-scrollbar">
-        {/* 새로운 노트 입력 영역: 원본 유지 */}
+        {/* 새로운 노트 입력 영역 */}
         <div className="flex items-start gap-3 w-full bg-[#252535] border border-gray-700 rounded-2xl p-4 shadow-inner">
           <div className="flex-grow">
             <textarea 
@@ -147,7 +148,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
           </div>
         </div>
 
-        {/* 노트 리스트 영역: 버튼 통합 및 가변형 로직 적용 */}
+        {/* 노트 리스트 영역 */}
         {notes.map(note => (
           <div key={note.id} className="flex items-start gap-3 w-full bg-[#1a1a2e] border border-gray-800 rounded-2xl p-4 shadow-lg transition-all hover:border-gray-600">
             <div className="flex-grow min-h-[40px] cursor-text" onClick={() => { if(editingId !== note.id) { setEditingId(note.id); setEditBuffer(note.content); } }}>
@@ -163,7 +164,6 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
               )}
             </div>
             <div className="flex flex-col gap-1.5 shrink-0">
-              {/* 통합된 수정/저장 가변형 버튼 */}
               <button 
                 onClick={() => { 
                   if(editingId === note.id) { 
@@ -180,7 +180,6 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
                 {editingId === note.id ? <Check className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
               </button>
               
-              {/* 삭제 버튼 */}
               <button 
                 onClick={() => { if(window.confirm("삭제하시겠습니까?")) setNotes(notes.filter(n => n.id !== note.id)) }} 
                 className="p-1.5 bg-red-900/50 text-red-500 rounded flex items-center justify-center hover:bg-red-800 transition-colors"

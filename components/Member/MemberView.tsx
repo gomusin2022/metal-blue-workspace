@@ -254,7 +254,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               </h2>
             )}
           </div>
-          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 scale-100">
+          {/* gap-1에서 gap-2.5로 조정하여 아이콘 간격 확대 */}
+          <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg gap-2.5 shrink-0 scale-100">
             <button onClick={handleClearAll} title="선택 삭제" className="p-1.5 text-red-500 hover:bg-[#2c2c2e] rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={addMember} className="p-1.5 text-blue-500 hover:bg-[#2c2c2e] rounded"><UserPlus className="w-5 h-5" /></button>
             <button onClick={handleExport} className="p-1.5 text-emerald-400 hover:bg-[#2c2c2e] rounded"><FileDown className="w-5 h-5" /></button>
