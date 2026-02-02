@@ -70,7 +70,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
       return;
     }
 
-    // 수정된 로직: 현재 타이틀(Schedule Board)을 파일명 앞에 포함
     const defaultFileName = `${calendarTitle}_${targetMonthStr}_일정관리`;
     const fileName = prompt("저장할 엑셀 파일명을 입력하세요:", defaultFileName);
     if (fileName === null) return;
@@ -131,13 +130,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
     <div className="flex flex-col h-full bg-[#121212] text-gray-200 w-full">
       <div className="flex flex-col w-full mb-1 px-0">
         
-        {/* 첫 번째 줄: 타이틀 및 작업 모드 (높이 md:h-16 유지) */}
         <div className="flex items-center justify-between w-full h-10 md:h-16 px-1.5 md:px-6">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
               <input 
                 autoFocus 
-                className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" 
+                className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-[1.2rem] font-black text-white outline-none w-fit max-w-full" 
                 value={calendarTitle} 
                 onChange={(e) => setCalendarTitle(e.target.value)} 
                 onBlur={() => setIsEditingTitle(false)} 
@@ -145,7 +143,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
               />
             ) : (
               <h2 
-                className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" 
+                className="text-[1.35rem] md:text-[1.8rem] font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" 
                 onClick={() => setIsEditingTitle(true)}
               >
                 {calendarTitle}
@@ -166,7 +164,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
           </div>
         </div>
 
-        {/* 두 번째 줄: 날짜 이동 및 엑셀 도구 (높이 md:h-16 유지) */}
         <div className="flex items-center justify-between w-full h-12 md:h-16 border-t border-[#3a3a5e]/20 pt-1.5 px-1.5 md:px-6">
           <div className="flex items-center bg-[#1a1a2e] rounded p-0.5 border border-[#3a3a5e] shadow-md">
             <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-[#2c2c2e] rounded"><ChevronLeft className="w-6 h-6 text-blue-400" /></button>
@@ -188,7 +185,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
 
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e] mx-0 mb-1.5 md:mb-6">
         <div className="grid grid-cols-7 gap-px md:gap-1 bg-[#252545] min-h-full">
-          {/* 요일 글자 크기 유지 */}
           {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
             <div 
               key={day} 
@@ -268,7 +264,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ schedules, onDateClick, onU
         </div>
       </div>
 
-      {/* 하단 개발자 문구 크기 유지 */}
       <div className="pb-4 text-center text-blue-500/80 text-[14px] md:text-[1.2rem] font-bold tracking-tight">
         This app was developed by Yongkyu Kim in January 2026
       </div>

@@ -94,7 +94,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
             {isEditingTitle ? (
               <input 
                 autoFocus 
-                className="bg-[#2c2c2e] border border-blue-500 rounded px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" 
+                className="bg-[#2c2c2e] border border-blue-500 rounded px-1.5 py-0.5 text-[1.2rem] font-black text-white outline-none w-fit max-w-full" 
                 value={noteTitle} 
                 onChange={(e) => setNoteTitle(e.target.value)} 
                 onBlur={() => setIsEditingTitle(false)}
@@ -102,7 +102,7 @@ const NoteView: React.FC<NoteViewProps> = ({ notes, setNotes, noteTitle, setNote
               />
             ) : (
               <h2 
-                className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate text-left w-fit hover:text-blue-400 transition-colors" 
+                className="text-[1.35rem] md:text-[1.8rem] font-black text-white cursor-pointer tracking-tighter truncate text-left w-fit hover:text-blue-400 transition-colors" 
                 onClick={() => setIsEditingTitle(true)}
               >
                 {noteTitle}

@@ -237,9 +237,21 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         <div className="flex items-center justify-between w-full h-10">
           <div className="flex-1 overflow-hidden">
             {isEditingTitle ? (
-              <input autoFocus className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-base font-black text-white outline-none w-fit max-w-full" value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} />
+              <input 
+                autoFocus 
+                className="bg-[#2c2c2e] border border-blue-500 rounded-lg px-1.5 py-0.5 text-[1.2rem] font-black text-white outline-none w-fit max-w-full" 
+                value={memberTitle} 
+                onChange={(e) => setMemberTitle(e.target.value)} 
+                onBlur={() => setIsEditingTitle(false)} 
+                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)} 
+              />
             ) : (
-              <h2 className="text-lg md:text-2xl font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" onClick={() => setIsEditingTitle(true)}>{memberTitle}</h2>
+              <h2 
+                className="text-[1.35rem] md:text-[1.8rem] font-black text-white cursor-pointer tracking-tighter truncate w-fit hover:text-blue-400 transition-colors" 
+                onClick={() => setIsEditingTitle(true)}
+              >
+                {memberTitle}
+              </h2>
             )}
           </div>
           <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] shadow-lg shrink-0 scale-100">
