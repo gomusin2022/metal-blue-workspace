@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, Image as ImageIcon, Loader2, Users } from 'lucide-react';
 import { Member } from '../../types';
 import { sendSmsMessage } from '../../services/apiService';
-import { upload } from '@vercel/blob/client'; // Vercel 전용 라이브러리
+import { upload } from '@vercel/blob/client';
 
 interface MessageModalProps {
   isOpen: boolean;
@@ -23,7 +23,6 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
 
   if (!isOpen) return null;
 
-  // 파일 업로드 핸들러
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -32,15 +31,14 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
     try {
       const newLinks: string[] = [];
       for (const file of Array.from(files)) {
-        // Vercel Blob 저장소로 직접 업로드
         const blob = await upload(file.name, file, {
           access: 'public',
-          handleUploadUrl: '/api/upload/blob', // 우리가 아까 쉘 명령어로 만든 경로
+          // 이 부분의 경로를 가장 확실한 확장자 포함 경로로 수정했습니다.
+          handleUploadUrl: '/api/upload/blob.ts', 
         });
         newLinks.push(blob.url);
       }
 
-      // 업로드된 링크를 메시지 창에 자동 삽입
       const linkText = newLinks.join('\n');
       setMessage(prev => prev + (prev ? '\n\n' : '') + "[첨부이미지]\n" + linkText);
       
