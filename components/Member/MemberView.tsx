@@ -199,9 +199,26 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     <div className="flex flex-col h-full bg-[#121212] p-1 text-gray-200 overflow-hidden font-sans">
       <div className="flex flex-col w-full mb-1">
         <div className="flex items-center justify-between w-full h-10 px-0.5">
-          <h2 className="text-[1.3rem] font-black text-white truncate cursor-pointer hover:text-blue-400" onClick={() => setIsEditingTitle(true)}>
-            {memberTitle}
-          </h2>
+          {/* [복구] 타이틀 수정 기능 (클릭 시 입력창 전환) */}
+          {isEditingTitle ? (
+            <input 
+              autoFocus
+              className="text-[1.2rem] md:text-[1.8rem] font-black text-white bg-transparent border-b border-blue-500 outline-none w-1/2"
+              value={memberTitle}
+              onChange={(e) => setMemberTitle(e.target.value)}
+              onBlur={() => setIsEditingTitle(false)}
+              onKeyDown={(e) => { if(e.key === 'Enter') setIsEditingTitle(false); }}
+            />
+          ) : (
+            <h2 
+              className="text-[1.3rem] font-black text-white truncate cursor-pointer hover:text-blue-400"
+              onClick={() => setIsEditingTitle(true)}
+              title="클릭하여 제목 수정"
+            >
+              {memberTitle}
+            </h2>
+          )}
+
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
@@ -226,7 +243,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               </button>
             ))}
           </div>
-          {/* [복구] 지점 선택 드롭다운 우측의 선택/표시 숫자 영역 */}
           <div className="flex items-center gap-1.5 shrink-0 ml-auto font-black text-[11px] text-gray-300">
             <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none appearance-none" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
               {branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}
