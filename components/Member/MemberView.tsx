@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { 
-  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload 
+  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Member } from '../../types';
@@ -48,17 +48,30 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // 차량번호 클릭 핸들러 (규칙: 남을 누르면 복사, 나를 또 누르면 순환)
+  // 문자기능 핸들러 (구글 드라이브 연동 API 호출용)
+  const handleMessageSend = () => {
+    const targetMembers = selectedIds.size > 0 
+      ? members.filter(m => selectedIds.has(m.id))
+      : displayMembers;
+
+    if (targetMembers.length === 0) return alert("문자를 보낼 대상이 없습니다.");
+    
+    if (confirm(`${targetMembers.length}명에게 문자를 보내시겠습니까?`)) {
+        // 구현된 API 호출 로직을 여기에 넣으세요.
+        // 예: sendMessageApi(targetMembers);
+        console.log("Sending messages to:", targetMembers);
+        alert("문자 전송 기능을 실행합니다.");
+    }
+  };
+
   const handleCarClick = (m: Member) => {
     let newValue;
     if (lastClickedMemberId === m.id) {
-      // 동일 회원 연속 클릭: 순환 (공백 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6)
       const sequence = ['', '1', '2', '3', '4', '5', '6'];
       const currentIndex = sequence.indexOf(m.carNumber || '');
       const nextIndex = (currentIndex + 1) % sequence.length;
       newValue = sequence[nextIndex];
     } else {
-      // 다른 회원 클릭: 마지막 기억된 값으로 덮어쓰기
       newValue = lastSelectedCar;
     }
     
@@ -123,7 +136,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           const sB = (b.memo || '').includes('신규') ? 1 : 0;
           if (sA !== sB) return sB - sA;
         } else if (key === 'carNumber') {
-          // 1, 2, 3, 4, 5, 6, 공백 순 정렬
           const valA = a.carNumber || '9'; 
           const valB = b.carNumber || '9';
           if (valA !== valB) return valA.localeCompare(valB);
@@ -176,10 +188,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
   const handleModalSave = () => {
     if (!editingMember) return;
-    
-    // 마지막 지정 차량번호 기억 (공백 포함)
     setLastSelectedCar(editingMember.carNumber || '');
-
     setMembers(prev => {
       const exists = prev.find(m => m.id === editingMember.id);
       let finalMember = { ...editingMember };
@@ -216,6 +225,15 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-1 rounded border border-[#3a3a5e] gap-1.5 shadow-lg shrink-0">
+            {/* 문자기능 버튼 추가 - 삭제 버튼 왼쪽 */}
+            <button 
+                title="문자전송" 
+                onClick={handleMessageSend} 
+                className="p-1.5 text-orange-400 hover:bg-orange-500/10 rounded"
+            >
+                <MessageSquare className="w-5 h-5" />
+            </button>
+
             <button 
                 title="선택삭제" 
                 onClick={() => { 
@@ -235,15 +253,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             }} className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
             <div className="w-px h-4 bg-[#3a3a5e] my-auto mx-0.5" />
             
-            {/* 엑셀 기능 보안상 주석 처리
-            <button title="엑셀다운" onClick={(e) => handleExport(e)} className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded"><FileDown className="w-5 h-5" /></button>
-            <label title="엑셀업" className="p-1.5 text-emerald-500 cursor-pointer hover:bg-emerald-500/10 rounded">
-              <FileUp className="w-5 h-5" />
-              <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileChange} />
-            </label>
-            <div className="w-px h-4 bg-[#3a3a5e] my-auto mx-0.5" />
-            */}
-
             <button title="디비다운" onClick={(e) => handleDbDownload(e)} className="p-1.5 text-indigo-400 hover:bg-indigo-500/10 rounded"><CloudDownload className="w-5 h-5" /></button>
             <label title="디비업" className="p-1.5 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
               <CloudUpload className="w-5 h-5" />
@@ -330,7 +339,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             </div>
             
             <div className="space-y-6">
-              {/* 첫 번째 줄: 지점 / 주소 */}
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                   <label className="text-[10px] text-blue-400 font-black ml-1 uppercase tracking-widest">Branch</label>
@@ -348,7 +356,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
-              {/* 두 번째 줄: 성명 / 연락처 */}
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                   <label className="text-[10px] text-blue-400 font-black ml-1 uppercase tracking-widest">Name</label>
@@ -366,7 +373,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
-              {/* 세 번째 줄: 확인 / 취소 버튼 */}
               <div className="flex gap-4 pt-6">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white rounded-[1.25rem] font-black transition-all border border-white/5 active:scale-95">취소</button>
                 <button onClick={handleModalSave} className="flex-[2] py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.25rem] font-black flex items-center justify-center gap-2 shadow-[0_10px_25px_rgba(37,99,235,0.4)] transition-all active:scale-95"><Save className="w-5 h-5" />저장하기</button>
