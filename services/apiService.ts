@@ -4,22 +4,43 @@
  * 이미지를 구글 드라이브에 업로드하고 공유 링크를 반환합니다.
  */
 export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> => {
-  // 실제 API 주소를 여기에 입력해야 합니다. (기존에 쓰시던 endpoint)
-  const API_ENDPOINT = 'YOUR_GOOGLE_APPS_SCRIPT_URL_OR_SERVER_URL';
+  // 1. 이미지에서 [키 표시]를 눌러 나온 AIza...로 시작하는 키를 아래 작은따옴표 사이에 넣으세요.
+  const API_KEY = 'AIzaSyAI7VWPxYup1dJrbcJ20Aq199hWis9UK8s'; 
+  
+  // 2. 주신 폴더 주소에서 추출한 ID입니다.
+  const FOLDER_ID = '1Un2C7fDMjMS18As41yJAMPlY-xU57MhJ';
+
+  // 3. 구글 드라이브 정식 업로드 엔드포인트
+  const API_ENDPOINT = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${API_KEY}`;
   
   const uploadPromises = Array.from(files).map(async (file) => {
+    // 구글 API 규격에 맞는 메타데이터 설정 (부모 폴더 지정)
+    const metadata = {
+      name: file.name,
+      parents: [FOLDER_ID]
+    };
+
     const formData = new FormData();
+    formData.append(
+      'metadata',
+      new Blob([JSON.stringify(metadata)], { type: 'application/json' })
+    );
     formData.append('file', file);
     
-    // 이 부분은 기존에 사용하시던 API 규격에 맞춰 수정이 필요할 수 있습니다.
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       body: formData,
     });
     
-    if (!response.ok) throw new Error('Upload failed');
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Google Drive API 오류 상세:", errorData);
+        throw new Error('구글 드라이브 업로드 실패');
+    }
+
     const data = await response.json();
-    return data.url; // 생성된 드라이브 링크
+    // 생성된 파일 ID를 바탕으로 접근 가능한 URL 반환
+    return `https://drive.google.com/file/d/${data.id}/view?usp=sharing`;
   });
 
   return Promise.all(uploadPromises);
@@ -29,8 +50,7 @@ export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> =>
  * 문자 전송 API를 호출합니다.
  */
 export const sendSmsMessage = async (numbers: string[], content: string) => {
-  // 문자 전송 서비스 연동 로직
-  console.log("Sending SMS to:", numbers, "Content:", content);
-  // 실제 호출부: return await fetch('/api/sms', { ... });
+  // 현재는 로그만 출력하도록 되어 있습니다. 필요 시 실제 SMS API 연동 코드를 추가하세요.
+  console.log("문자 전송 대상:", numbers, "내용:", content);
   return true;
 };
