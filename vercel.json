@@ -1,1 +1,1 @@
-{"functions":{"api/upload/*.ts":{"runtime":"vercel-node@latest"}}}
+{"functions":{"api/db/*.ts":{"runtime":"nodejs20.x"}}}
