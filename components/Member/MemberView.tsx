@@ -208,33 +208,33 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
       </div>
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded-lg border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed min-w-[500px] md:min-w-[900px]">
-          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[11px] border-b border-[#3a3a5e]">
+          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[10px] border-b border-[#3a3a5e]">
             <tr>
-              <th className="p-1 w-7 text-center"><input type="checkbox" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
-              <th className="p-1 w-6 text-left text-gray-500">N</th>
-              <th className="p-1 w-6 text-left">지</th>
-              <th className="p-1 w-16 text-left">이름</th> {/* w-16 고정 */}
-              <th className="p-1 w-[100px] text-left font-mono">연락처</th> {/* w-100 확장 */}
-              <th className="p-1 w-14 text-left text-gray-400">주소</th> {/* w-14 축소 */}
-              <th className="p-1 w-7 text-right text-emerald-400">차</th>
-              <th className="p-1 w-7 text-right">비</th>
-              <th className="p-1 w-7 text-right">출</th>
-              <th className="p-1 w-7 text-right">가</th>
+              <th className="p-0.5 w-6 text-center"><input type="checkbox" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
+              <th className="p-0.5 w-5 text-left text-gray-500">N</th>
+              <th className="p-0.5 w-5 text-left">지</th>
+              <th className="p-0.5 w-14 text-left">이름</th>
+              <th className="p-0.5 w-[92px] text-left font-mono">연락처</th>
+              <th className="p-0.5 w-14 text-left text-gray-400">주소</th>
+              <th className="p-0.5 w-6 text-right text-emerald-400">차</th>
+              <th className="p-0.5 w-6 text-right">비</th>
+              <th className="p-0.5 w-6 text-right">출</th>
+              <th className="p-0.5 w-6 text-right">가</th>
             </tr>
           </thead>
-          <tbody className="text-sm font-bold">
+          <tbody className="text-[11px] font-bold">
             {displayMembers.map((m, idx) => (
               <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { setEditingMember({...m}); setIsModalOpen(true); }}>
-                <td className="p-1 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
-                <td className="p-1 text-left text-gray-600 text-[10px] font-normal">{idx + 1}</td>
-                <td className="p-1 text-left text-blue-400 text-[11px] font-black">{getShortBranch(m.branch)}</td>
-                <td className="p-1 text-left truncate text-white text-[12px]">{m.name}</td>
-                <td className="p-1 text-left text-blue-300 text-[11px] font-mono whitespace-nowrap">{m.phone}</td>
-                <td className="p-1 text-left text-gray-400 text-[11px] truncate whitespace-nowrap">{m.address}</td>
-                <td className={`p-1 text-right text-[11px] font-black ${getCarColor(m.carNumber)}`} onClick={(e) => { e.stopPropagation(); handleCarClick(m); }}>{m.carNumber || '-'}</td>
-                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, fee: !x.fee} : x)); }}><Check className={`w-4 h-4 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
-                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, attendance: !x.attendance} : x)); }}><Check className={`w-4 h-4 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
-                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); let j = String(m.joined || ''); j = j.includes(currentYear) ? "" : currentYear; setMembers(prev => prev.map(x => x.id === m.id ? {...x, joined: j} : x)); }}><Check className={`w-4 h-4 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
+                <td className="p-0.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
+                <td className="p-0.5 text-left text-gray-600 text-[9px] font-normal">{idx + 1}</td>
+                <td className="p-0.5 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
+                <td className="p-0.5 text-left truncate text-white">{m.name}</td>
+                <td className="p-0.5 text-left text-blue-300 font-mono whitespace-nowrap">{m.phone}</td>
+                <td className="p-0.5 text-left text-gray-400 truncate whitespace-nowrap">{m.address}</td>
+                <td className={`p-0.5 text-right font-black ${getCarColor(m.carNumber)}`} onClick={(e) => { e.stopPropagation(); handleCarClick(m); }}>{m.carNumber || '-'}</td>
+                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, fee: !x.fee} : x)); }}><Check className={`w-3.5 h-3.5 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, attendance: !x.attendance} : x)); }}><Check className={`w-3.5 h-3.5 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); let j = String(m.joined || ''); j = j.includes(currentYear) ? "" : currentYear; setMembers(prev => prev.map(x => x.id === m.id ? {...x, joined: j} : x)); }}><Check className={`w-3.5 h-3.5 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
               </tr>
             ))}
           </tbody>
