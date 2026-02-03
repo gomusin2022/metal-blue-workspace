@@ -196,44 +196,20 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121212] p-1 md:p-6 pt-0.5 text-gray-200 overflow-hidden font-sans">
+    <div className="flex flex-col h-full bg-[#121212] p-1 text-gray-200 overflow-hidden font-sans">
       <div className="flex flex-col w-full mb-1">
-        <div className="flex items-center justify-between w-full h-10">
-          {isEditingTitle ? (
-            <input 
-              autoFocus
-              className="text-[1.2rem] md:text-[1.8rem] font-black text-white bg-transparent border-b border-blue-500 outline-none w-1/2"
-              value={memberTitle}
-              onChange={(e) => setMemberTitle(e.target.value)}
-              onBlur={() => setIsEditingTitle(false)}
-              onKeyDown={(e) => { if(e.key === 'Enter') setIsEditingTitle(false); }}
-            />
-          ) : (
-            <h2 
-              className="text-[1.2rem] md:text-[1.8rem] font-black text-white truncate cursor-pointer hover:text-blue-400"
-              onClick={() => setIsEditingTitle(true)}
-            >
-              {memberTitle}
-            </h2>
-          )}
-
+        <div className="flex items-center justify-between w-full h-10 px-0.5">
+          <h2 className="text-[1.3rem] font-black text-white truncate cursor-pointer hover:text-blue-400" onClick={() => setIsEditingTitle(true)}>
+            {memberTitle}
+          </h2>
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-4 h-4" /></button>
-            <button onClick={() => { 
-                    if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요.");
-                    if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { 
-                        setMembers(members.filter(m => !selectedIds.has(m.id))); 
-                        setSelectedIds(new Set()); 
-                    } 
-                }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-4 h-4" /></button>
-            <button onClick={() => { 
-              setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); 
-              setIsModalOpen(true); 
-            }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-4 h-4" /></button>
+            <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
+            <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
+            <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-            <button onClick={(e) => handleDbDownload(e)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded"><CloudDownload className="w-4 h-4" /></button>
+            <button onClick={(e) => handleDbDownload(e)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded"><CloudDownload className="w-5 h-5" /></button>
             <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
-              <CloudUpload className="w-4 h-4" />
+              <CloudUpload className="w-5 h-5" />
               <input type="file" className="hidden" accept=".db,.json" onChange={handleDbUpload} />
             </label>
           </div>
@@ -245,12 +221,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               {label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, 
               {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'} 
             ].map(btn => (
-              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-1.5 py-0.5 min-w-[34px] rounded border text-[9px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[10px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
                 {btn.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 shrink-0 ml-auto font-black text-[9px] text-gray-300">
+          <div className="flex items-center gap-1 shrink-0 ml-auto font-black text-[10px] text-gray-300">
             <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none appearance-none" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
               {branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}
             </select>
@@ -260,39 +236,33 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed">
-          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[9px] border-b border-[#3a3a5e]">
+          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[10px] border-b border-[#3a3a5e]">
             <tr>
-              <th className="p-0.5 w-6 text-center">
-                <input 
-                    type="checkbox" 
-                    checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length}
-                    onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} 
-                />
-              </th>
+              <th className="p-0.5 w-6 text-center"><input type="checkbox" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
               <th className="p-0.5 w-4 text-left text-gray-500 text-[8px]">N</th>
               <th className="p-0.5 w-4 text-left">지</th>
-              <th className="p-0.5 w-12 text-left">이름</th>
-              <th className="p-0.5 w-[84px] text-left">연락처</th>
-              <th className="p-0.5 w-14 text-left text-gray-400">주소</th>
+              <th className="p-0.5 w-[54px] text-left">이름</th>
+              <th className="p-0.5 w-[94px] text-left">연락처</th>
+              <th className="p-0.5 w-12 text-left text-gray-400">주소</th>
               <th className="p-0.5 w-5 text-right text-emerald-400">차</th>
               <th className="p-0.5 w-5 text-right">비</th>
               <th className="p-0.5 w-5 text-right">출</th>
               <th className="p-0.5 w-5 text-right">가</th>
             </tr>
           </thead>
-          <tbody className="text-[10px] font-bold">
+          <tbody className="text-[12px] font-bold">
             {displayMembers.map((m, idx) => (
               <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { setEditingMember({...m}); setIsModalOpen(true); }}>
                 <td className="p-0.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
                 <td className="p-0.5 text-left text-gray-600 text-[8px] font-normal">{idx + 1}</td>
-                <td className="p-0.5 text-left text-blue-400">{getShortBranch(m.branch)}</td>
+                <td className="p-0.5 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
                 <td className="p-0.5 text-left truncate text-white whitespace-nowrap">{m.name}</td>
                 <td className="p-0.5 text-left text-blue-300 font-mono tracking-tighter whitespace-nowrap">{m.phone}</td>
                 <td className="p-0.5 text-left text-gray-400 truncate whitespace-nowrap">{m.address}</td>
                 <td className={`p-0.5 text-right font-black ${getCarColor(m.carNumber)}`} onClick={(e) => { e.stopPropagation(); handleCarClick(m); }}>{m.carNumber || '-'}</td>
-                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, fee: !x.fee} : x)); }}><Check className={`w-3.5 h-3.5 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
-                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, attendance: !x.attendance} : x)); }}><Check className={`w-3.5 h-3.5 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
-                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); let j = String(m.joined || ''); j = j.includes(currentYear) ? "" : currentYear; setMembers(prev => prev.map(x => x.id === m.id ? {...x, joined: j} : x)); }}><Check className={`w-3.5 h-3.5 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, fee: !x.fee} : x)); }}><Check className={`w-4 h-4 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); setMembers(prev => prev.map(x => x.id === m.id ? {...x, attendance: !x.attendance} : x)); }}><Check className={`w-4 h-4 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right" onClick={(e) => { e.stopPropagation(); let j = String(m.joined || ''); j = j.includes(currentYear) ? "" : currentYear; setMembers(prev => prev.map(x => x.id === m.id ? {...x, joined: j} : x)); }}><Check className={`w-4 h-4 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
               </tr>
             ))}
           </tbody>
@@ -312,7 +282,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               <h3 className="text-lg font-black text-white">{editingMember.id && members.find(m => m.id === editingMember.id) ? '정보 수정' : '새 회원 등록'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
-            
             <div className="space-y-4">
               <div className="flex gap-3">
                 <div className="flex-1 space-y-1">
@@ -326,7 +295,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                   <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.address} onChange={(e) => setEditingMember({...editingMember, address: e.target.value})} placeholder="주소" />
                 </div>
               </div>
-
               <div className="flex gap-3">
                 <div className="flex-1 space-y-1">
                   <label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Name</label>
@@ -341,7 +309,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                   </div>
                 </div>
               </div>
-
               <div className="flex gap-3 pt-4">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl font-black border border-white/5 active:scale-95">취소</button>
                 <button onClick={handleModalSave} className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95"><Save className="w-4 h-4" />저장</button>
