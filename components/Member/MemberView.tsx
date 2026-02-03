@@ -221,12 +221,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               {label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, 
               {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'} 
             ].map(btn => (
-              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[10px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
                 {btn.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 shrink-0 ml-auto font-black text-[10px] text-gray-300">
+          <div className="flex items-center gap-1 shrink-0 ml-auto font-black text-[11px] text-gray-300">
             <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none appearance-none" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
               {branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}
             </select>
@@ -236,10 +236,10 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed">
-          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[10px] border-b border-[#3a3a5e]">
+          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[12px] border-b border-[#3a3a5e]">
             <tr>
               <th className="p-0.5 w-6 text-center"><input type="checkbox" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
-              <th className="p-0.5 w-4 text-left text-gray-500 text-[8px]">N</th>
+              <th className="p-0.5 w-4 text-left text-gray-500 text-[10px]">N</th>
               <th className="p-0.5 w-4 text-left">지</th>
               <th className="p-0.5 w-[54px] text-left">이름</th>
               <th className="p-0.5 w-[94px] text-left">연락처</th>
@@ -254,7 +254,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             {displayMembers.map((m, idx) => (
               <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { setEditingMember({...m}); setIsModalOpen(true); }}>
                 <td className="p-0.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
-                <td className="p-0.5 text-left text-gray-600 text-[8px] font-normal">{idx + 1}</td>
+                <td className="p-0.5 text-left text-gray-600 text-[10px] font-normal">{idx + 1}</td>
                 <td className="p-0.5 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
                 <td className="p-0.5 text-left truncate text-white whitespace-nowrap">{m.name}</td>
                 <td className="p-0.5 text-left text-blue-300 font-mono tracking-tighter whitespace-nowrap">{m.phone}</td>
