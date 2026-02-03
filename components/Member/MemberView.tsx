@@ -226,10 +226,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 shrink-0 ml-auto font-black text-[11px] text-gray-300">
+          {/* [복구] 지점 선택 드롭다운 우측의 선택/표시 숫자 영역 */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto font-black text-[11px] text-gray-300">
             <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none appearance-none" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
               {branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}
             </select>
+            <span className="whitespace-nowrap">선택 {selectedIds.size} | 표시 {displayMembers.length}</span>
           </div>
         </div>
       </div>
