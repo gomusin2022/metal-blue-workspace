@@ -35,7 +35,7 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
         // Vercel Blob 저장소로 직접 업로드
         const blob = await upload(file.name, file, {
           access: 'public',
-          handleUploadUrl: '/api/upload/blob', // 우리가 아까 쉘 명령어로 만든 경로
+          handleUploadUrl: '/api/upload/blob.ts', // 우리가 아까 쉘 명령어로 만든 경로
         });
         newLinks.push(blob.url);
       }
