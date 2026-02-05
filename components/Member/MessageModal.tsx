@@ -37,8 +37,11 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
     try {
       const newLinks: string[] = [];
       
+      // [에러 수정] Array.from(files)를 File[]로 명시적 캐스팅하여 타입 에러 해결
+      const fileList = Array.from(files) as File[];
+      
       // 다중 파일 선택 대응을 위한 루프 (필요 시 복수 업로드 가능)
-      for (const file of Array.from(files)) {
+      for (const file of fileList) {
         // apiService의 Vercel Blob 업로드 함수 호출
         const blobUrl = await uploadToVercelBlob(file);
         
