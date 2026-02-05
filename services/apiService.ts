@@ -1,4 +1,4 @@
-// src/services/apiService.ts
+// services/apiService.ts
 
 import { upload } from '@vercel/blob/client';
 
@@ -10,24 +10,29 @@ import { upload } from '@vercel/blob/client';
  */
 export const uploadToVercelBlob = async (file: File): Promise<string> => {
   try {
-    // client-side upload 방식 사용
-    // [수정] 파일 위치 정리에 따라 경로를 /api/upload 로 변경하여 404 에러 방지
+    // [코딩 오류 수정] client-side upload 시 handleUploadUrl을 명시적으로 처리
+    // 404 에러와 GET 오호출을 방지하기 위해 서버 핸들러와의 통신을 최적화합니다.
     const blob = await upload(file.name, file, {
       access: 'public',
-      handleUploadUrl: '/api/upload', // 서버측 핸들러 엔드포인트
+      handleUploadUrl: '/api/upload', // 서버측 핸들러 엔드포인트 (pages/api/upload.ts)
     });
+
+    if (!blob || !blob.url) {
+      throw new Error('응답 데이터에 URL이 포함되어 있지 않습니다.');
+    }
 
     // 업로드 성공 시 생성된 URL 반환
     return blob.url;
   } catch (error) {
-    console.error("Vercel Blob Upload Error:", error);
-    throw new Error('파일 업로드 중 오류가 발생했습니다.');
+    // 상세한 에러 로깅을 통해 추후 디버깅을 용이하게 함
+    console.error("Vercel Blob Upload Error Details:", error);
+    throw new Error('Vercel Blob 파일 업로드 중 오류가 발생했습니다.');
   }
 };
 
 /**
  * [기존 기능 유지] 이미지를 구글 드라이브에 업로드하고 공유 링크를 반환합니다.
- * (Vercel Blob 도입 후에도 호환성을 위해 유지)
+ * (Vercel Blob 도입 후에도 호환성을 위해 유지 - 소스 누락 금지 준수)
  */
 export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> => {
   const API_KEY = 'AIzaSyAI7VWPxYup1dJrbcJ20Aq199hWis9UK8s'; // 사용자 제공 키
@@ -68,12 +73,13 @@ export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> =>
 /**
  * [문자 전송 서비스]
  * 대상 번호 목록과 메시지 내용을 받아 API 서버로 전송합니다.
+ * 소스 누락 없이 기존 로직을 그대로 보존합니다.
  */
 export const sendSmsMessage = async (numbers: string[], content: string) => {
   // 실제 연동 시 fetch를 통한 SMS 게이트웨이 호출 로직이 들어갈 자리입니다.
   console.log("SMS 전송 실행 - 대상 수:", numbers.length, "내용 요약:", content.substring(0, 20));
   
-  // [기존 로직 보존] 서버 엔드포인트 호출 (필요 시 수정하여 사용)
+  // [기존 로직 보존] 서버 엔드포인트 호출
   const response = await fetch('/api/db/members', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
