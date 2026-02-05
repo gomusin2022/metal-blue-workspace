@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* index.html의 인라인 스타일과 충돌하지 않도록 기본 배경 설정 */
+body {
+    background-color: #121212;
+    color: #e0e0e0;
+}

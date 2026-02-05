@@ -1,20 +1,40 @@
 // src/services/apiService.ts
 
+import { upload } from '@vercel/blob/client';
+
 /**
- * 이미지를 구글 드라이브에 업로드하고 공유 링크를 반환합니다.
+ * [Vercel Blob 업로드 서비스]
+ * 단체 문자 발송 시 첨부할 이미지를 Vercel Blob 스토리지에 업로드합니다.
+ * @param file 업로드할 파일 객체
+ * @returns 업로드 완료된 파일의 공용 URL 링크
+ */
+export const uploadToVercelBlob = async (file: File): Promise<string> => {
+  try {
+    // client-side upload 방식 사용
+    // handleUploadUrl은 /api/upload/blob.ts 경로를 가리킴
+    const blob = await upload(file.name, file, {
+      access: 'public',
+      handleUploadUrl: '/api/upload/blob', // 서버측 핸들러 엔드포인트
+    });
+
+    // 업로드 성공 시 생성된 URL 반환
+    return blob.url;
+  } catch (error) {
+    console.error("Vercel Blob Upload Error:", error);
+    throw new Error('파일 업로드 중 오류가 발생했습니다.');
+  }
+};
+
+/**
+ * [기존 기능 유지] 이미지를 구글 드라이브에 업로드하고 공유 링크를 반환합니다.
+ * (Vercel Blob 도입 후에도 호환성을 위해 유지)
  */
 export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> => {
-  // 1. 이미지에서 [키 표시]를 눌러 나온 AIza...로 시작하는 키를 아래 작은따옴표 사이에 넣으세요.
-  const API_KEY = 'AIzaSyAI7VWPxYup1dJrbcJ20Aq199hWis9UK8s'; 
-  
-  // 2. 주신 폴더 주소에서 추출한 ID입니다.
-  const FOLDER_ID = '1Un2C7fDMjMS18As41yJAMPlY-xU57MhJ';
-
-  // 3. 구글 드라이브 정식 업로드 엔드포인트
+  const API_KEY = 'AIzaSyAI7VWPxYup1dJrbcJ20Aq199hWis9UK8s'; // 사용자 제공 키
+  const FOLDER_ID = '1Un2C7fDMjMS18As41yJAMPlY-xU57MhJ'; // 사용자 제공 폴더 ID
   const API_ENDPOINT = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${API_KEY}`;
   
   const uploadPromises = Array.from(files).map(async (file) => {
-    // 구글 API 규격에 맞는 메타데이터 설정 (부모 폴더 지정)
     const metadata = {
       name: file.name,
       parents: [FOLDER_ID]
@@ -39,7 +59,6 @@ export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> =>
     }
 
     const data = await response.json();
-    // 생성된 파일 ID를 바탕으로 접근 가능한 URL 반환
     return `https://drive.google.com/file/d/${data.id}/view?usp=sharing`;
   });
 
@@ -47,10 +66,11 @@ export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> =>
 };
 
 /**
- * 문자 전송 API를 호출합니다.
+ * [문자 전송 서비스]
+ * 대상 번호 목록과 메시지 내용을 받아 API 서버로 전송합니다.
  */
 export const sendSmsMessage = async (numbers: string[], content: string) => {
-  // 현재는 로그만 출력하도록 되어 있습니다. 필요 시 실제 SMS API 연동 코드를 추가하세요.
-  console.log("문자 전송 대상:", numbers, "내용:", content);
+  // 실제 연동 시 fetch를 통한 SMS 게이트웨이 호출 로직이 들어갈 자리입니다.
+  console.log("SMS 전송 실행 - 대상 수:", numbers.length, "내용 요약:", content.substring(0, 20));
   return true;
 };
