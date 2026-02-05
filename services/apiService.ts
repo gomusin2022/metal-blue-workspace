@@ -11,10 +11,10 @@ import { upload } from '@vercel/blob/client';
 export const uploadToVercelBlob = async (file: File): Promise<string> => {
   try {
     // client-side upload 방식 사용
-    // handleUploadUrl은 /api/upload/blob.ts 경로를 가리킴
+    // [수정] 파일 위치 정리에 따라 경로를 /api/upload 로 변경하여 404 에러 방지
     const blob = await upload(file.name, file, {
       access: 'public',
-      handleUploadUrl: '/api/upload/blob', // 서버측 핸들러 엔드포인트
+      handleUploadUrl: '/api/upload', // 서버측 핸들러 엔드포인트
     });
 
     // 업로드 성공 시 생성된 URL 반환
@@ -72,5 +72,13 @@ export const uploadToGoogleDrive = async (files: FileList): Promise<string[]> =>
 export const sendSmsMessage = async (numbers: string[], content: string) => {
   // 실제 연동 시 fetch를 통한 SMS 게이트웨이 호출 로직이 들어갈 자리입니다.
   console.log("SMS 전송 실행 - 대상 수:", numbers.length, "내용 요약:", content.substring(0, 20));
-  return true;
+  
+  // [기존 로직 보존] 서버 엔드포인트 호출 (필요 시 수정하여 사용)
+  const response = await fetch('/api/db/members', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumbers: numbers, message: content }),
+  });
+
+  return response.ok;
 };
