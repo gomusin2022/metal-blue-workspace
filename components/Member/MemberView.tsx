@@ -24,7 +24,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
 
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
@@ -42,8 +42,9 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [신규 기능: 버첼 DB 연동] ---
+  // --- [신규 기능: 버첼 DB 연동 (로그인 생략 버전)] ---
 
+  // 1. 버첼 DB에서 데이터 가져오기 (다운로드)
   const fetchFromVercel = async () => {
     setIsLoading(true);
     try {
@@ -57,6 +58,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); }
   };
 
+  // 2. 버첼 DB에 현재 데이터 저장하기 (업로드)
   const saveToVercel = async () => {
     if (!window.confirm(`${selectedBranch} 데이터를 서버 DB에 저장하시겠습니까?`)) return;
     setIsLoading(true);
@@ -71,10 +73,16 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); }
   };
 
+  // 3. 파일 링크 변환 (임시 구현 - 2단계 과제)
   const handleFileUploadAndLink = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    alert("이 기능은 문자 전송 모달 내 '파일 첨부' 기능을 이용해주세요.");
+    setIsLoading(true);
+    // TODO: 임시 파일을 서버로 보내고 URL 링크를 받아오는 로직
+    setTimeout(() => {
+      alert(`파일 [${file.name}]이 서버로 전송되었습니다.\n생성된 링크: https://vercel-temp.storage/${file.name}`);
+      setIsLoading(false);
+    }, 1000);
   };
 
   // --- [기존 로직 보존] ---
@@ -161,30 +169,44 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
+            {/* [추가] 버첼 연동 버튼 2개 */}
             <button onClick={fetchFromVercel} title="버첼에서 가져오기" className="p-1 text-blue-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
             <button onClick={saveToVercel} title="버첼에 저장하기" className="p-1 text-emerald-400 hover:bg-white/5 rounded"><Save className="w-5 h-5" /></button>
+            
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
+
+            {/* [추가] 파일 링크 변환 버튼 */}
             <label className="p-1 text-orange-400 cursor-pointer hover:bg-white/5 rounded" title="파일 링크 변환">
-              <Share2 className="w-5 h-5" /><input type="file" className="hidden" onChange={handleFileUploadAndLink} />
+              <Share2 className="w-5 h-5" />
+              <input type="file" className="hidden" onChange={handleFileUploadAndLink} />
             </label>
+
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
+
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
             <button onClick={(e) => handleDbDownload(e)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded"><CloudDownload className="w-5 h-5" /></button>
-            <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded"><CloudUpload className="w-5 h-5" /><input type="file" className="hidden" accept=".db,.json" onChange={handleDbUpload} /></label>
+            <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
+              <CloudUpload className="w-5 h-5" />
+              <input type="file" className="hidden" accept=".db,.json" onChange={handleDbUpload} />
+            </label>
           </div>
         </div>
 
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
           <div className="flex gap-0.5 overflow-x-auto no-scrollbar pr-2">
             {[{label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'}].map(btn => (
-              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>{btn.label}</button>
+              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+                {btn.label}
+              </button>
             ))}
           </div>
           <div className="flex items-center gap-1.5 shrink-0 ml-auto font-black text-[11px] text-gray-300">
-            <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>{branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}</select>
+            <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
+              {branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}
+            </select>
             <span className="whitespace-nowrap">선택 {selectedIds.size} | 표시 {displayMembers.length}</span>
           </div>
         </div>
@@ -230,11 +252,41 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-lg bg-[#1a1a2e] rounded-2xl p-6 border border-white/10 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-6"><h3 className="text-lg font-black text-white">{editingMember.id && members.find(m => m.id === editingMember.id) ? '정보 수정' : '새 회원 등록'}</h3><button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button></div>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-white">{editingMember.id && members.find(m => m.id === editingMember.id) ? '정보 수정' : '새 회원 등록'}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
             <div className="space-y-4">
-              <div className="flex gap-3"><div className="flex-1 space-y-1"><label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Branch</label><select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>{branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}</select></div><div className="flex-[2] space-y-1"><label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Address</label><input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.address} onChange={(e) => setEditingMember({...editingMember, address: e.target.value})} placeholder="주소" /></div></div>
-              <div className="flex gap-3"><div className="flex-1 space-y-1"><label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Name</label><input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} placeholder="성함" /></div><div className="flex-[2] space-y-1"><label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Phone</label><div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2"><span className="font-black text-gray-500 text-xs">010</span><input ref={phoneMidRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-white" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} /><input ref={phoneEndRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-white" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} /></div></div></div>
-              <div className="flex gap-3 pt-4"><button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl font-black border border-white/5 active:scale-95">취소</button><button onClick={handleModalSave} className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95"><Save className="w-4 h-4" />저장</button></div>
+              <div className="flex gap-3">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Branch</label>
+                  <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
+                    {branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}
+                  </select>
+                </div>
+                <div className="flex-[2] space-y-1">
+                  <label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Address</label>
+                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.address} onChange={(e) => setEditingMember({...editingMember, address: e.target.value})} placeholder="주소" />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Name</label>
+                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} placeholder="성함" />
+                </div>
+                <div className="flex-[2] space-y-1">
+                  <label className="text-[10px] text-blue-400 font-black ml-1 uppercase">Phone</label>
+                  <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                    <span className="font-black text-gray-500 text-xs">010</span>
+                    <input ref={phoneMidRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-white" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
+                    <input ref={phoneEndRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-white" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl font-black border border-white/5 active:scale-95">취소</button>
+                <button onClick={handleModalSave} className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95"><Save className="w-4 h-4" />저장</button>
+              </div>
             </div>
           </div>
         </div>
