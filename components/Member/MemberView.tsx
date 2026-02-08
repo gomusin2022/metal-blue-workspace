@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { 
-  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare, Database, Share2, Loader2
+  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare, Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Member } from '../../types';
@@ -42,9 +42,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [신규 기능: 버첼 DB 연동 (로그인 생략 버전)] ---
+  // --- [신규 기능: 버첼 DB 연동 (버튼은 삭제했으나 로직은 유지)] ---
 
-  // 1. 버첼 DB에서 데이터 가져오기 (다운로드)
   const fetchFromVercel = async () => {
     setIsLoading(true);
     try {
@@ -58,7 +57,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); }
   };
 
-  // 2. 버첼 DB에 현재 데이터 저장하기 (업로드)
   const saveToVercel = async () => {
     if (!window.confirm(`${selectedBranch} 데이터를 서버 DB에 저장하시겠습니까?`)) return;
     setIsLoading(true);
@@ -73,12 +71,10 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); }
   };
 
-  // 3. 파일 링크 변환 (임시 구현 - 2단계 과제)
   const handleFileUploadAndLink = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsLoading(true);
-    // TODO: 임시 파일을 서버로 보내고 URL 링크를 받아오는 로직
     setTimeout(() => {
       alert(`파일 [${file.name}]이 서버로 전송되었습니다.\n생성된 링크: https://vercel-temp.storage/${file.name}`);
       setIsLoading(false);
@@ -136,12 +132,23 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
+  // --- [소트 로직 수정: 공백은 뒤로] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
       for (const key of sortCriteria) {
-        const res = String(a[key as keyof Member] || '').localeCompare(String(b[key as keyof Member] || ''), 'ko');
-        if (res !== 0) return res;
+        const valA = String(a[key as keyof Member] || '').trim();
+        const valB = String(b[key as keyof Member] || '').trim();
+
+        // 둘 다 공백이 아닐 때만 일반 비교
+        if (valA !== "" && valB !== "") {
+          const res = valA.localeCompare(valB, 'ko');
+          if (res !== 0) return res;
+        } 
+        // 하나가 공백이면 공백인 쪽을 뒤로 (valA가 비었으면 뒤(1), valB가 비었으면 앞(-1))
+        else if (valA !== valB) {
+          return valA === "" ? 1 : -1;
+        }
       }
       return 0;
     });
@@ -169,20 +176,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* [추가] 버첼 연동 버튼 2개 */}
-            <button onClick={fetchFromVercel} title="버첼에서 가져오기" className="p-1 text-blue-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
-            <button onClick={saveToVercel} title="버첼에 저장하기" className="p-1 text-emerald-400 hover:bg-white/5 rounded"><Save className="w-5 h-5" /></button>
+            {/* [삭제 요청 사항 반영: 버첼 연동 및 파일 링크 변환 버튼 제거] */}
             
-            <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-
-            {/* [추가] 파일 링크 변환 버튼 */}
-            <label className="p-1 text-orange-400 cursor-pointer hover:bg-white/5 rounded" title="파일 링크 변환">
-              <Share2 className="w-5 h-5" />
-              <input type="file" className="hidden" onChange={handleFileUploadAndLink} />
-            </label>
-
-            <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
