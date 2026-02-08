@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Member } from '../../types';
 import MessageModal from './MessageModal'; 
 
-// [방법 B: 전역 변수] 최종 선택한 차량 번호를 컴포넌트 외부에서 영구 기억
+// [전역 변수] 최종 사용한 차량 번호를 컴포넌트 외부에서 영구 기억
 let GLOBAL_LAST_CAR_NUMBER = ''; 
 
 interface MemberViewProps {
@@ -49,7 +49,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     const sequence = ['', '1', '2', '3', '4', '5', '6'];
     const currentIndex = sequence.indexOf(current || '');
     const nextVal = sequence[(currentIndex + 1) % sequence.length];
-    GLOBAL_LAST_CAR_NUMBER = nextVal;
+    GLOBAL_LAST_CAR_NUMBER = nextVal; // 클릭 즉시 전역 변수 업데이트
     return nextVal;
   };
 
@@ -146,7 +146,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               setEditingMember({ 
                 id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', 
                 joined: '', fee: false, attendance: false, 
-                carNumber: GLOBAL_LAST_CAR_NUMBER, 
+                carNumber: GLOBAL_LAST_CAR_NUMBER, // 모달 뜨자마자 전역변수 주입
                 memo: '' 
               }); 
               setIsModalOpen(true); 
@@ -177,36 +177,39 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* 목록 리스트: 테이블 글씨 상향 */}
+      {/* 목록 리스트: 글씨 크기 극대화 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed">
-          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[13px] border-b border-[#3a3a5e]">
+          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[15px] border-b border-[#3a3a5e]">
             <tr>
-              <th className="p-1 w-7 text-center"><input type="checkbox" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
-              <th className="p-1 w-5 text-left text-gray-500 text-[11px]">N</th>
-              <th className="p-1 w-6 text-left">지</th>
-              <th className="p-1 w-[60px] text-left">이름</th>
-              <th className="p-1 w-[100px] text-left">연락처</th>
-              <th className="p-1 w-14 text-left text-gray-400">주소</th>
-              <th className="p-1 w-6 text-right text-emerald-400">차</th>
-              <th className="p-1 w-6 text-right">비</th>
-              <th className="p-1 w-6 text-right">출</th>
-              <th className="p-1 w-6 text-right">가</th>
+              <th className="p-1.5 w-8 text-center"><input type="checkbox" className="w-4 h-4" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
+              <th className="p-1.5 w-6 text-left text-gray-500 text-[12px]">N</th>
+              <th className="p-1.5 w-7 text-left">지</th>
+              <th className="p-1.5 w-[70px] text-left">이름</th>
+              <th className="p-1.5 w-[110px] text-left">연락처</th>
+              <th className="p-1.5 w-16 text-left text-gray-400">주소</th>
+              <th className="p-1.5 w-7 text-right text-emerald-400">차</th>
+              <th className="p-1.5 w-7 text-right">비</th>
+              <th className="p-1.5 w-7 text-right">출</th>
+              <th className="p-1.5 w-7 text-right">가</th>
             </tr>
           </thead>
-          <tbody className="text-[13px] font-bold">
+          <tbody className="text-[16px] font-bold">
             {displayMembers.map((m, idx) => (
-              <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { setEditingMember({...m}); setIsModalOpen(true); }}>
-                <td className="p-1 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
-                <td className="p-1 text-left text-gray-600 text-[11px] font-normal">{idx + 1}</td>
-                <td className="p-1 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
-                <td className="p-1 text-left truncate text-white whitespace-nowrap">{m.name}</td>
-                <td className="p-1 text-left text-blue-300 font-mono tracking-tighter">{m.phone}</td>
-                <td className="p-1 text-left text-gray-400 truncate">{m.address}</td>
-                <td className={`p-1 text-right font-black ${getCarColor(m.carNumber)}`}>{m.carNumber || '-'}</td>
-                <td className="p-1 text-right"><Check className={`w-5 h-5 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
-                <td className="p-1 text-right"><Check className={`w-5 h-5 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
-                <td className="p-1 text-right"><Check className={`w-5 h-5 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
+              <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer h-12 ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { 
+                setEditingMember({...m, carNumber: GLOBAL_LAST_CAR_NUMBER || m.carNumber}); // 수정 시에도 전역변수 주입
+                setIsModalOpen(true); 
+              }}>
+                <td className="p-1.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="w-4 h-4" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
+                <td className="p-1.5 text-left text-gray-600 text-[12px] font-normal">{idx + 1}</td>
+                <td className="p-1.5 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
+                <td className="p-1.5 text-left truncate text-white whitespace-nowrap">{m.name}</td>
+                <td className="p-1.5 text-left text-blue-300 font-mono tracking-tighter">{m.phone}</td>
+                <td className="p-1.5 text-left text-gray-400 truncate">{m.address}</td>
+                <td className={`p-1.5 text-right font-black ${getCarColor(m.carNumber)}`}>{m.carNumber || '-'}</td>
+                <td className="p-1.5 text-right"><Check className={`w-6 h-6 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
+                <td className="p-1.5 text-right"><Check className={`w-6 h-6 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
+                <td className="p-1.5 text-right"><Check className={`w-6 h-6 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
               </tr>
             ))}
           </tbody>
@@ -215,68 +218,80 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
 
-      {/* 가입/수정 모달: 레이아웃 재구성 */}
+      {/* 가입/수정 모달 (타이틀 삭제 및 레이아웃 재배치) */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-2 text-white">
-          <div className="w-full max-w-lg bg-[#1a1a2e] rounded-2xl p-5 border border-white/10 relative shadow-2xl">
+          <div className="w-full max-w-lg bg-[#1a1a2e] rounded-2xl p-6 border border-white/10 relative shadow-2xl">
             <div className="space-y-4">
-              {/* 1행: 지점 / 이름 / 주소를 한 줄에 배치 */}
-              <div className="flex gap-2 items-end">
-                <div className="w-[20%]">
-                  <label className="text-[12px] text-blue-400 font-black ml-1">지점</label>
-                  <select className="w-full bg-white/5 border border-white/10 rounded-lg px-1 py-2 font-black text-lg outline-none" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
+              {/* 1행: 이름(30%) / 주소(70%) */}
+              <div className="flex gap-2">
+                <div className="w-[30%]">
+                  <label className="text-[14px] text-blue-400 font-black ml-1">성명</label>
+                  <input className="w-full h-12 bg-white/5 border border-white/10 rounded-lg px-3 font-black text-xl outline-none" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} placeholder="이름" />
+                </div>
+                <div className="w-[70%]">
+                  <label className="text-[14px] text-blue-400 font-black ml-1">주소</label>
+                  <input className="w-full h-12 bg-white/5 border border-white/10 rounded-lg px-4 font-black text-xl outline-none" value={editingMember.address} onChange={(e) => setEditingMember({...editingMember, address: e.target.value})} placeholder="거주지 주소" />
+                </div>
+              </div>
+
+              {/* 2행: 지점(30%) / 연락처(70%) */}
+              <div className="flex gap-2">
+                <div className="w-[30%]">
+                  <label className="text-[14px] text-blue-400 font-black ml-1">지점</label>
+                  <select className="w-full h-12 bg-white/5 border border-white/10 rounded-lg px-2 font-black text-xl outline-none appearance-none" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
                     {branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}
                   </select>
                 </div>
-                <div className="w-[25%]">
-                  <label className="text-[12px] text-blue-400 font-black ml-1">성명</label>
-                  <input className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 font-black text-lg outline-none" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} placeholder="이름" />
-                </div>
-                <div className="w-[55%]">
-                  <label className="text-[12px] text-blue-400 font-black ml-1">주소</label>
-                  <input className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 font-black text-lg outline-none" value={editingMember.address} onChange={(e) => setEditingMember({...editingMember, address: e.target.value})} placeholder="거주지 주소" />
-                </div>
-              </div>
-
-              {/* 2행: 연락처 */}
-              <div>
-                <label className="text-[12px] text-blue-400 font-black ml-1">연락처</label>
-                <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
-                  <span className="font-black text-gray-400 text-lg">010</span>
-                  <input ref={phoneMidRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-lg text-white" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
-                  <input ref={phoneEndRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-lg text-white" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
+                <div className="w-[70%]">
+                  <label className="text-[14px] text-blue-400 font-black ml-1">연락처</label>
+                  <div className="flex items-center gap-1 h-12 bg-white/5 border border-white/10 rounded-lg px-4">
+                    <span className="font-black text-gray-400 text-xl">010</span>
+                    <input ref={phoneMidRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-xl text-white" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
+                    <input ref={phoneEndRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-xl text-white" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
+                  </div>
                 </div>
               </div>
 
-              {/* 차/비/출/가 한 줄 배치 */}
-              <div className="flex items-end justify-between p-3 bg-white/5 rounded-xl border border-white/5 gap-0.5">
+              {/* 차/비/출/가 (높이 정렬 및 라벨 크기 상향) */}
+              <div className="flex items-end justify-between p-4 bg-white/5 rounded-xl border border-white/5 gap-0.5">
                 <div className="flex flex-col items-center flex-1 border-r border-white/10 h-full justify-between">
-                  <span className="text-[14px] text-blue-400 font-black mb-1">차량</span>
+                  <span className="text-[15px] text-blue-400 font-black mb-1">차량</span>
                   <div 
                     onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber || '')})}
-                    className={`text-3xl font-black cursor-pointer select-none leading-none ${getCarColor(editingMember.carNumber || '')}`}
+                    className={`text-4xl font-black cursor-pointer select-none leading-none ${getCarColor(editingMember.carNumber || '')}`}
                   >
                     {editingMember.carNumber || '-'}
                   </div>
                 </div>
                 <div className="flex flex-col items-center flex-1 border-r border-white/10 h-full justify-between">
-                  <span className="text-[14px] text-blue-400 font-black mb-1">회비</span>
-                  <input type="checkbox" className="w-8 h-8 rounded border-gray-600 bg-transparent text-yellow-500 focus:ring-0 cursor-pointer mb-[-2px]" checked={editingMember.fee} onChange={(e) => setEditingMember({...editingMember, fee: e.target.checked})} />
+                  <span className="text-[15px] text-blue-400 font-black mb-1">회비</span>
+                  <input type="checkbox" className="w-10 h-10 rounded border-gray-600 bg-transparent text-yellow-500 focus:ring-0 cursor-pointer mb-[-4px]" checked={editingMember.fee} onChange={(e) => setEditingMember({...editingMember, fee: e.target.checked})} />
                 </div>
                 <div className="flex flex-col items-center flex-1 border-r border-white/10 h-full justify-between">
-                  <span className="text-[14px] text-blue-400 font-black mb-1">출결</span>
-                  <input type="checkbox" className="w-8 h-8 rounded border-gray-600 bg-transparent text-green-500 focus:ring-0 cursor-pointer mb-[-2px]" checked={editingMember.attendance} onChange={(e) => setEditingMember({...editingMember, attendance: e.target.checked})} />
+                  <span className="text-[15px] text-blue-400 font-black mb-1">출결</span>
+                  <input type="checkbox" className="w-10 h-10 rounded border-gray-600 bg-transparent text-green-500 focus:ring-0 cursor-pointer mb-[-4px]" checked={editingMember.attendance} onChange={(e) => setEditingMember({...editingMember, attendance: e.target.checked})} />
                 </div>
                 <div className="flex flex-col items-center flex-1 h-full justify-between">
-                  <span className="text-[14px] text-blue-400 font-black mb-1">가입</span>
-                  <input type="checkbox" className="w-8 h-8 rounded border-gray-600 bg-transparent text-purple-500 focus:ring-0 cursor-pointer mb-[-2px]" checked={String(editingMember.joined || '').includes(currentYear)} onChange={(e) => setEditingMember({...editingMember, joined: e.target.checked ? currentYear : ''})} />
+                  <span className="text-[15px] text-blue-400 font-black mb-1">가입</span>
+                  <input type="checkbox" className="w-10 h-10 rounded border-gray-600 bg-transparent text-purple-500 focus:ring-0 cursor-pointer mb-[-4px]" checked={String(editingMember.joined || '').includes(currentYear)} onChange={(e) => setEditingMember({...editingMember, joined: e.target.checked ? currentYear : ''})} />
                 </div>
               </div>
 
-              {/* 하단 버튼 */}
+              {/* 하단 버튼 (취소 | 저장) */}
               <div className="flex gap-2 pt-2">
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-400 rounded-xl font-black border border-white/10 active:scale-95 text-lg">취소</button>
-                <button onClick={handleModalSave} className="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 text-xl shadow-lg shadow-blue-900/20"><Save className="w-6 h-6" />저장하기</button>
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 py-4 bg-white/5 text-gray-400 rounded-xl font-black border border-white/10 active:scale-95 text-xl"
+                >
+                  취소
+                </button>
+                <button 
+                  onClick={handleModalSave} 
+                  className="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 text-2xl shadow-lg"
+                >
+                  <Save className="w-7 h-7" />저장하기
+                </button>
               </div>
             </div>
           </div>
