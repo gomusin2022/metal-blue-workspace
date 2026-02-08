@@ -26,7 +26,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- [신규 상태: 로컬 DB 저장 파일명 모달용] ---
+  // --- [로컬 DB 저장 파일명 모달용 상태] ---
   const [isDbSaveModalOpen, setIsDbSaveModalOpen] = useState(false);
   const [dbSaveFileName, setDbSaveFileName] = useState('');
 
@@ -84,33 +84,69 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }, 1000);
   };
 
-  // --- [로컬 DB 파일 저장 로직 수정] ---
+  // --- [로컬 DB 파일 저장 로직] ---
   const openDbSaveModal = (e: React.MouseEvent) => {
     e.preventDefault();
-    // 초기 파일명 설정 (확장자 제외)
     setDbSaveFileName(`${memberTitle}_${format(new Date(), 'yyyyMMdd')}`);
     setIsDbSaveModalOpen(true);
   };
 
   const handleConfirmDbDownload = () => {
     if (!dbSaveFileName.trim()) return alert("저장할 파일명을 입력해주세요.");
-    
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
     const dbData = targetMembers.map(m => ({
       id: m.sn.toString(), name: m.name, position: m.position, phone: m.phone, branch: m.branch,
       join_year: m.joined, addr: m.address, fee: m.fee ? "1" : "", car_num: m.carNumber,
       attendance: m.attendance ? "1" : "", note: m.memo
     }));
-
-    // .db 확장자로 저장
     const blob = new Blob([JSON.stringify(dbData, null, 4)], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${dbSaveFileName}.db`; 
     link.click();
-    
     setIsDbSaveModalOpen(false);
+  };
+
+  // --- [수정: DB 업로드 로직 - .db 확장자 인식 강화] ---
+  const handleDbUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const result = event.target?.result as string;
+        if (!result) throw new Error("파일 내용이 비어있습니다.");
+        
+        const json = JSON.parse(result);
+        if (!Array.isArray(json)) throw new Error("올바른 데이터 형식이 아닙니다.");
+
+        const newMembers = json.map((d: any) => ({
+          id: generateId(),
+          sn: Number(d.id || 0),
+          branch: d.branch || '본점',
+          name: d.name || '',
+          position: d.position || '회원',
+          phone: d.phone || '',
+          address: d.addr || d.address || '',
+          joined: d.join_year || d.joined || '',
+          fee: d.fee === "1" || d.fee === true,
+          attendance: d.attendance === "1" || d.attendance === true,
+          carNumber: d.car_num || d.carNumber || '',
+          memo: d.note || d.memo || ''
+        }));
+
+        setMembers(newMembers);
+        alert(`${newMembers.length}명의 회원을 불러왔습니다.`);
+      } catch (err) {
+        console.error("DB Upload Error:", err);
+        alert("디비 파일 파싱 실패: 파일 형식을 확인하세요.");
+      } finally {
+        e.target.value = ''; // 같은 파일 재업로드 가능하도록 초기화
+      }
+    };
+    reader.readAsText(file);
   };
 
   // --- [기존 로직 보존] ---
@@ -130,24 +166,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     setLastSelectedCar(newValue);
     setLastClickedMemberId(m.id);
     setMembers(prev => prev.map(x => x.id === m.id ? { ...x, carNumber: newValue } : x));
-  };
-
-  const handleDbUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        setMembers(json.map((d: any) => ({
-          id: generateId(), sn: Number(d.id || 0), branch: d.branch || '본점', name: d.name || '',
-          position: d.position || '회원', phone: d.phone || '', address: d.addr || '',
-          joined: d.join_year || '', fee: d.fee === "1", attendance: d.attendance === "1",
-          carNumber: d.car_num || '', memo: d.note || ''
-        })));
-      } catch (err) { alert("디비 파일 파싱 실패"); }
-    };
-    reader.readAsText(file);
   };
 
   const displayMembers = useMemo(() => {
@@ -185,25 +203,18 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
             <button onClick={fetchFromVercel} title="버첼에서 가져오기" className="p-1 text-blue-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
             <button onClick={saveToVercel} title="버첼에 저장하기" className="p-1 text-emerald-400 hover:bg-white/5 rounded"><Save className="w-5 h-5" /></button>
-            
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-
             <label className="p-1 text-orange-400 cursor-pointer hover:bg-white/5 rounded" title="파일 링크 변환">
               <Share2 className="w-5 h-5" />
               <input type="file" className="hidden" onChange={handleFileUploadAndLink} />
             </label>
-
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-            
-            {/* 로컬 DB 저장: 모달 열기로 변경 */}
             <button onClick={openDbSaveModal} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded" title="내 PC에 DB 저장"><CloudDownload className="w-5 h-5" /></button>
-            
-            <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
+            <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded" title="DB 파일 업로드">
               <CloudUpload className="w-5 h-5" />
               <input type="file" className="hidden" accept=".db,.json" onChange={handleDbUpload} />
             </label>
@@ -264,7 +275,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
 
-      {/* [수정] 내 PC DB 저장 시 파일명 입력 모달 */}
       {isDbSaveModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
           <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40 shadow-2xl">
@@ -275,13 +285,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             <p className="text-gray-400 text-[11px] mb-4 font-bold uppercase tracking-widest">Format: *.db (Json encrypted)</p>
             <div className="space-y-5">
               <div className="relative">
-                <input 
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none focus:border-indigo-500/50 transition-all pr-12 text-lg"
-                  value={dbSaveFileName}
-                  onChange={(e) => setDbSaveFileName(e.target.value)}
-                  placeholder="파일명 입력"
-                  autoFocus
-                />
+                <input className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none focus:border-indigo-500/50 transition-all pr-12 text-lg" value={dbSaveFileName} onChange={(e) => setDbSaveFileName(e.target.value)} placeholder="파일명 입력" autoFocus />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-500 font-black text-sm">.db</span>
               </div>
               <div className="flex gap-3">
