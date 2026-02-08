@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { 
-  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare, Database, Share2, Loader2
+  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare, Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Member } from '../../types';
@@ -13,7 +13,7 @@ interface MemberViewProps {
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
-  // --- [기존 상태 및 기능 100% 보존] ---
+  // --- [상태 및 변수 정의] ---
   const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -24,7 +24,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
+  const [isLoading, setIsLoading] = useState(false); 
 
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
@@ -42,50 +42,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [신규 기능: 버첼 DB 연동 (로그인 생략 버전)] ---
-
-  // 1. 버첼 DB에서 데이터 가져오기 (다운로드)
-  const fetchFromVercel = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/db/members?branch=${encodeURIComponent(selectedBranch)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMembers(data);
-        alert(`${selectedBranch} 데이터를 서버에서 가져왔습니다.`);
-      }
-    } catch (err) { alert("서버 로드 실패"); }
-    finally { setIsLoading(false); }
-  };
-
-  // 2. 버첼 DB에 현재 데이터 저장하기 (업로드)
-  const saveToVercel = async () => {
-    if (!window.confirm(`${selectedBranch} 데이터를 서버 DB에 저장하시겠습니까?`)) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/db/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: selectedBranch, members })
-      });
-      if (res.ok) alert("서버 저장 성공!");
-    } catch (err) { alert("서버 저장 실패"); }
-    finally { setIsLoading(false); }
-  };
-
-  // 3. 파일 링크 변환 (임시 구현 - 2단계 과제)
-  const handleFileUploadAndLink = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsLoading(true);
-    // TODO: 임시 파일을 서버로 보내고 URL 링크를 받아오는 로직
-    setTimeout(() => {
-      alert(`파일 [${file.name}]이 서버로 전송되었습니다.\n생성된 링크: https://vercel-temp.storage/${file.name}`);
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  // --- [기존 로직 보존] ---
+  // --- [기존 핸들러 로직] ---
   const handleMessageSend = () => {
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
     if (targetMembers.length === 0) return alert("문자를 보낼 대상이 없습니다.");
@@ -136,11 +93,25 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
+  // --- [수정: 가입소트 방향 및 중복소트 로직] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
       for (const key of sortCriteria) {
-        const res = String(a[key as keyof Member] || '').localeCompare(String(b[key as keyof Member] || ''), 'ko');
+        let valA: any = a[key as keyof Member];
+        let valB: any = b[key as keyof Member];
+
+        if (typeof valA === 'boolean') valA = valA ? "1" : "";
+        if (typeof valB === 'boolean') valB = valB ? "1" : "";
+
+        const strA = String(valA || '').trim();
+        const strB = String(valB || '').trim();
+
+        // [수정] 데이터가 있는 쪽(체크됨)이 위(-1), 공백이 아래(1)
+        if (strA !== "" && strB === "") return -1;
+        if (strA === "" && strB !== "") return 1;
+
+        const res = strA.localeCompare(strB, 'ko', { numeric: true });
         if (res !== 0) return res;
       }
       return 0;
@@ -169,20 +140,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* [추가] 버첼 연동 버튼 2개 */}
-            <button onClick={fetchFromVercel} title="버첼에서 가져오기" className="p-1 text-blue-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
-            <button onClick={saveToVercel} title="버첼에 저장하기" className="p-1 text-emerald-400 hover:bg-white/5 rounded"><Save className="w-5 h-5" /></button>
-            
-            <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-
-            {/* [추가] 파일 링크 변환 버튼 */}
-            <label className="p-1 text-orange-400 cursor-pointer hover:bg-white/5 rounded" title="파일 링크 변환">
-              <Share2 className="w-5 h-5" />
-              <input type="file" className="hidden" onChange={handleFileUploadAndLink} />
-            </label>
-
-            <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-
+            {/* [수정] 왼쪽 버튼 3개 삭제 (fetch, save, link 버튼 제거됨) */}
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
