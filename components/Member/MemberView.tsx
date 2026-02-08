@@ -130,7 +130,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [수정: 가입(joined) 소트 시 공백을 맨 뒤로] ---
+  // --- [수정: 가입(joined) 데이터가 위로, 공백이 아래로] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -138,10 +138,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         const valA = String(a[key as keyof Member] || '').trim();
         const valB = String(b[key as keyof Member] || '').trim();
 
-        // 가입(joined) 포함, 정렬 기준값이 공백이면 무조건 뒤로(1) 보냄
+        // valA가 공백이고 valB가 값이 있으면: valA를 뒤로 (1)
         if (valA === "" && valB !== "") return 1;
+        // valA에 값이 있고 valB가 공백이면: valA를 앞으로 (-1)
         if (valA !== "" && valB === "") return -1;
 
+        // 둘 다 값이 있거나 둘 다 공백일 때 일반 비교
         const res = valA.localeCompare(valB, 'ko', { numeric: true });
         if (res !== 0) return res;
       }
