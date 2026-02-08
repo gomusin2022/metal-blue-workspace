@@ -24,7 +24,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
+  const [isLoading, setIsLoading] = useState(false);
 
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
@@ -42,8 +42,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [신규 기능: 버첼 DB 연동 (버튼은 삭제했으나 로직은 유지)] ---
-
+  // --- [핸들러 로직 보존] ---
   const fetchFromVercel = async () => {
     setIsLoading(true);
     try {
@@ -81,7 +80,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }, 1000);
   };
 
-  // --- [기존 로직 보존] ---
   const handleMessageSend = () => {
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
     if (targetMembers.length === 0) return alert("문자를 보낼 대상이 없습니다.");
@@ -132,22 +130,34 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [소트 로직 수정: 공백은 뒤로] ---
+  // --- [소트 로직 수정: 가입 포함 모든 공백/빈값은 뒤로] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
       for (const key of sortCriteria) {
-        const valA = String(a[key as keyof Member] || '').trim();
-        const valB = String(b[key as keyof Member] || '').trim();
+        const rawA = a[key as keyof Member];
+        const rawB = b[key as keyof Member];
 
-        // 둘 다 공백이 아닐 때만 일반 비교
-        if (valA !== "" && valB !== "") {
-          const res = valA.localeCompare(valB, 'ko');
+        // 빈 값(공백 문자열, 체크해제 false, null/undefined) 여부 확인
+        const isEmpty = (v: any) => {
+          if (typeof v === 'string') return v.trim() === "";
+          if (typeof v === 'boolean') return v === false;
+          return v === null || v === undefined;
+        };
+
+        const isAEmpty = isEmpty(rawA);
+        const isBEmpty = isEmpty(rawB);
+
+        // 한쪽이 빈 값일 경우: 빈 값인 쪽을 리스트 하단(1)으로 보냄
+        if (isAEmpty && !isBEmpty) return 1;
+        if (!isAEmpty && isBEmpty) return -1;
+        
+        // 둘 다 값이 있거나 둘 다 빈 값일 때 실제 값 비교
+        if (!isAEmpty && !isBEmpty) {
+          const sA = String(rawA);
+          const sB = String(rawB);
+          const res = sA.localeCompare(sB, 'ko', { numeric: true });
           if (res !== 0) return res;
-        } 
-        // 하나가 공백이면 공백인 쪽을 뒤로 (valA가 비었으면 뒤(1), valB가 비었으면 앞(-1))
-        else if (valA !== valB) {
-          return valA === "" ? 1 : -1;
         }
       }
       return 0;
@@ -176,12 +186,13 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* [삭제 요청 사항 반영: 버첼 연동 및 파일 링크 변환 버튼 제거] */}
-            
+            {/* [수정 사항: 요청하신 버튼 3개 및 구분선 삭제됨] */}
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
+            
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
+            
             <button onClick={(e) => handleDbDownload(e)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded"><CloudDownload className="w-5 h-5" /></button>
             <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
               <CloudUpload className="w-5 h-5" />
