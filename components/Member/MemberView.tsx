@@ -146,7 +146,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               setEditingMember({ 
                 id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', 
                 joined: '', fee: false, attendance: false, 
-                carNumber: GLOBAL_LAST_CAR_NUMBER, // 모달 뜨자마자 전역변수 주입
+                carNumber: GLOBAL_LAST_CAR_NUMBER, 
                 memo: '' 
               }); 
               setIsModalOpen(true); 
@@ -177,39 +177,39 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* 목록 리스트: 글씨 크기 극대화 */}
+      {/* 회원 목록 테이블: 글씨 크기 text-[12px] 원상복구 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed">
-          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[15px] border-b border-[#3a3a5e]">
+          <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[12px] border-b border-[#3a3a5e]">
             <tr>
-              <th className="p-1.5 w-8 text-center"><input type="checkbox" className="w-4 h-4" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
-              <th className="p-1.5 w-6 text-left text-gray-500 text-[12px]">N</th>
-              <th className="p-1.5 w-7 text-left">지</th>
-              <th className="p-1.5 w-[70px] text-left">이름</th>
-              <th className="p-1.5 w-[110px] text-left">연락처</th>
-              <th className="p-1.5 w-16 text-left text-gray-400">주소</th>
-              <th className="p-1.5 w-7 text-right text-emerald-400">차</th>
-              <th className="p-1.5 w-7 text-right">비</th>
-              <th className="p-1.5 w-7 text-right">출</th>
-              <th className="p-1.5 w-7 text-right">가</th>
+              <th className="p-0.5 w-6 text-center"><input type="checkbox" checked={displayMembers.length > 0 && selectedIds.size === displayMembers.length} onChange={(e) => setSelectedIds(e.target.checked ? new Set(displayMembers.map(m => m.id)) : new Set())} /></th>
+              <th className="p-0.5 w-4 text-left text-gray-500 text-[10px]">N</th>
+              <th className="p-0.5 w-4 text-left">지</th>
+              <th className="p-0.5 w-[54px] text-left">이름</th>
+              <th className="p-0.5 w-[94px] text-left">연락처</th>
+              <th className="p-0.5 w-12 text-left text-gray-400">주소</th>
+              <th className="p-0.5 w-5 text-right text-emerald-400">차</th>
+              <th className="p-0.5 w-5 text-right">비</th>
+              <th className="p-0.5 w-5 text-right">출</th>
+              <th className="p-0.5 w-5 text-right">가</th>
             </tr>
           </thead>
-          <tbody className="text-[16px] font-bold">
+          <tbody className="text-[12px] font-bold">
             {displayMembers.map((m, idx) => (
-              <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer h-12 ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { 
-                setEditingMember({...m, carNumber: GLOBAL_LAST_CAR_NUMBER || m.carNumber}); // 수정 시에도 전역변수 주입
+              <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { 
+                setEditingMember({...m, carNumber: GLOBAL_LAST_CAR_NUMBER || m.carNumber}); // 수정 시에도 전역변수 우선 주입
                 setIsModalOpen(true); 
               }}>
-                <td className="p-1.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="w-4 h-4" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
-                <td className="p-1.5 text-left text-gray-600 text-[12px] font-normal">{idx + 1}</td>
-                <td className="p-1.5 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
-                <td className="p-1.5 text-left truncate text-white whitespace-nowrap">{m.name}</td>
-                <td className="p-1.5 text-left text-blue-300 font-mono tracking-tighter">{m.phone}</td>
-                <td className="p-1.5 text-left text-gray-400 truncate">{m.address}</td>
-                <td className={`p-1.5 text-right font-black ${getCarColor(m.carNumber)}`}>{m.carNumber || '-'}</td>
-                <td className="p-1.5 text-right"><Check className={`w-6 h-6 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
-                <td className="p-1.5 text-right"><Check className={`w-6 h-6 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
-                <td className="p-1.5 text-right"><Check className={`w-6 h-6 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
+                <td className="p-0.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
+                <td className="p-0.5 text-left text-gray-600 text-[10px] font-normal">{idx + 1}</td>
+                <td className="p-0.5 text-left text-blue-400 font-black">{getShortBranch(m.branch)}</td>
+                <td className="p-0.5 text-left truncate text-white whitespace-nowrap">{m.name}</td>
+                <td className="p-0.5 text-left text-blue-300 font-mono tracking-tighter">{m.phone}</td>
+                <td className="p-0.5 text-left text-gray-400 truncate">{m.address}</td>
+                <td className={`p-0.5 text-right font-black ${getCarColor(m.carNumber)}`}>{m.carNumber || '-'}</td>
+                <td className="p-0 text-right"><Check className={`w-4 h-4 ml-auto ${m.fee ? 'text-yellow-400' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right"><Check className={`w-4 h-4 ml-auto ${m.attendance ? 'text-green-500' : 'text-gray-800'}`} /></td>
+                <td className="p-0 text-right"><Check className={`w-4 h-4 ml-auto ${String(m.joined || '').includes(currentYear) ? 'text-purple-500' : 'text-gray-800'}`} /></td>
               </tr>
             ))}
           </tbody>
@@ -218,12 +218,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
 
-      {/* 가입/수정 모달 (타이틀 삭제 및 레이아웃 재배치) */}
+      {/* 가입/수정 모달 (레이아웃 및 전역 변수 주입 유지) */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-2 text-white">
           <div className="w-full max-w-lg bg-[#1a1a2e] rounded-2xl p-6 border border-white/10 relative shadow-2xl">
             <div className="space-y-4">
-              {/* 1행: 이름(30%) / 주소(70%) */}
+              {/* 1행: 성명(30%) / 주소(70%) */}
               <div className="flex gap-2">
                 <div className="w-[30%]">
                   <label className="text-[14px] text-blue-400 font-black ml-1">성명</label>
@@ -253,7 +253,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
-              {/* 차/비/출/가 (높이 정렬 및 라벨 크기 상향) */}
+              {/* 차/비/출/가 (모달 내 큰 UI 유지) */}
               <div className="flex items-end justify-between p-4 bg-white/5 rounded-xl border border-white/5 gap-0.5">
                 <div className="flex flex-col items-center flex-1 border-r border-white/10 h-full justify-between">
                   <span className="text-[15px] text-blue-400 font-black mb-1">차량</span>
@@ -280,18 +280,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
               {/* 하단 버튼 (취소 | 저장) */}
               <div className="flex gap-2 pt-2">
-                <button 
-                  onClick={() => setIsModalOpen(false)} 
-                  className="flex-1 py-4 bg-white/5 text-gray-400 rounded-xl font-black border border-white/10 active:scale-95 text-xl"
-                >
-                  취소
-                </button>
-                <button 
-                  onClick={handleModalSave} 
-                  className="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 text-2xl shadow-lg"
-                >
-                  <Save className="w-7 h-7" />저장하기
-                </button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-400 rounded-xl font-black border border-white/10 active:scale-95 text-xl">취소</button>
+                <button onClick={handleModalSave} className="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 text-2xl shadow-lg shadow-blue-900/20"><Save className="w-7 h-7" />저장하기</button>
               </div>
             </div>
           </div>
