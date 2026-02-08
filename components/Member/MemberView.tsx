@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Member } from '../../types';
 import MessageModal from './MessageModal'; 
 
-// [방법 B: 전역 변수 설정] 컴포넌트 외부 선언으로 Unmount 시에도 값이 유지됨
+// [방법 B: 전역 변수] 컴포넌트 외부 선언으로 Unmount 시에도 값이 유지됨
 let GLOBAL_LAST_CAR_NUMBER = ''; 
 
 interface MemberViewProps {
@@ -49,8 +49,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const getNextCarNumber = (current: string) => {
     const sequence = ['', '1', '2', '3', '4', '5', '6'];
     const currentIndex = sequence.indexOf(current || '');
-    const nextValue = sequence[(currentIndex + 1) % sequence.length];
-    return nextValue;
+    return sequence[(currentIndex + 1) % sequence.length];
   };
 
   const handleMessageSend = () => {
@@ -119,7 +118,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const handleModalSave = () => {
     if (!editingMember) return;
     
-    // [전역 변수 업데이트] 저장 시점에 사용된 차량 번호를 전역 변수에 기록
+    // [저장 시 전역 변수 업데이트]
     GLOBAL_LAST_CAR_NUMBER = editingMember.carNumber || '';
     
     setMembers(prev => {
@@ -149,7 +148,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               setEditingMember({ 
                 id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', 
                 joined: '', fee: false, attendance: false, 
-                carNumber: GLOBAL_LAST_CAR_NUMBER, // [전역 변수 호출] 새 회원 등록 시 마지막 값 사용
+                carNumber: GLOBAL_LAST_CAR_NUMBER, // [신규 등록 시 전역 변수 값 주입]
                 memo: '' 
               }); 
               setIsModalOpen(true); 
@@ -180,7 +179,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* 리스트 테이블: 차비출가 수정불가 */}
+      {/* 목록 리스트: 차/비/출/가 수정 불가 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed">
           <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[12px] border-b border-[#3a3a5e]">
@@ -218,7 +217,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
 
-      {/* 회원가입/수정 모달 */}
+      {/* 회원 가입/수정 모달 */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-2 text-white">
           <div className="w-full max-w-sm bg-[#1a1a2e] rounded-2xl p-4 border border-white/10 relative shadow-2xl">
@@ -228,6 +227,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             </div>
             
             <div className="space-y-3">
+              {/* 지점 / 성명 */}
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="text-[11px] text-blue-400 font-black ml-1">지점</label>
@@ -241,29 +241,28 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
+              {/* 연락처 */}
               <div>
                 <label className="text-[11px] text-blue-400 font-black ml-1">연락처</label>
                 <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
                   <span className="font-black text-gray-400 text-lg">010</span>
-                  <input ref={phoneMidRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-lg" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
-                  <input ref={phoneEndRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-lg" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
+                  <input ref={phoneMidRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-white text-lg" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
+                  <input ref={phoneEndRef} type="tel" className="w-full bg-transparent font-black text-center outline-none text-white text-lg" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
                 </div>
               </div>
 
+              {/* 주소 */}
               <div>
                 <label className="text-[11px] text-blue-400 font-black ml-1">주소</label>
                 <input className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 font-black text-lg outline-none" value={editingMember.address} onChange={(e) => setEditingMember({...editingMember, address: e.target.value})} placeholder="거주지 주소" />
               </div>
 
-              {/* 차/비/출/가 (순환 클릭 및 한 줄 배치) */}
+              {/* 차/비/출/가 한 줄 배치 */}
               <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5">
                 <div className="flex flex-col items-center flex-1 border-r border-white/10">
                   <span className="text-[10px] text-blue-400 font-black mb-1">차량</span>
                   <div 
-                    onClick={() => {
-                      const nextCar = getNextCarNumber(editingMember.carNumber || '');
-                      setEditingMember({...editingMember, carNumber: nextCar});
-                    }}
+                    onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber || '')})}
                     className={`text-2xl font-black cursor-pointer select-none py-1 w-full text-center hover:bg-white/5 rounded transition-colors ${getCarColor(editingMember.carNumber || '')}`}
                   >
                     {editingMember.carNumber || '-'}
@@ -283,8 +282,20 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
-              <div className="pt-2">
-                <button onClick={handleModalSave} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 text-xl shadow-lg"><Save className="w-6 h-6" />저장하기</button>
+              {/* 하단 버튼 (취소 | 저장하기) */}
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 py-4 bg-white/5 text-gray-400 rounded-xl font-black border border-white/10 active:scale-95 text-lg"
+                >
+                  취소
+                </button>
+                <button 
+                  onClick={handleModalSave} 
+                  className="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black flex items-center justify-center gap-2 active:scale-95 text-xl shadow-lg"
+                >
+                  <Save className="w-6 h-6" />저장하기
+                </button>
               </div>
             </div>
           </div>
