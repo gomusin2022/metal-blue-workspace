@@ -13,7 +13,7 @@ interface MemberViewProps {
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
-  // --- [상태 및 변수 정의] ---
+  // --- [기존 상태 유지] ---
   const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -42,7 +42,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [기존 핸들러 로직 100% 보존] ---
+  // --- [기존 핸들러 보존] ---
   const handleMessageSend = () => {
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
     if (targetMembers.length === 0) return alert("문자를 보낼 대상이 없습니다.");
@@ -93,7 +93,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [수정: 가입소트 방향 및 중복소트 로직] ---
+  // --- [수정: 가입소트 방향 강제 반전 및 중복소트 로직] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -107,10 +107,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         const strA = String(valA || '').trim();
         const strB = String(valB || '').trim();
 
-        // [수정] 데이터가 있는 쪽(체크됨)이 위(-1), 공백이 아래(1)
+        // 반대로 정렬되는 현상 해결: 데이터(체크)가 있으면 상단(-1), 없으면 하단(1)
         if (strA !== "" && strB === "") return -1;
         if (strA === "" && strB !== "") return 1;
 
+        // 데이터가 둘 다 있는 경우 문자열 비교
         const res = strA.localeCompare(strB, 'ko', { numeric: true });
         if (res !== 0) return res;
       }
@@ -140,7 +141,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* 왼쪽 버튼 3개 삭제 완료 */}
+            {/* 왼쪽 버튼 3개 삭제 */}
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
