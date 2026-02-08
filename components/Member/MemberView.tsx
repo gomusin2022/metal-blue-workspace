@@ -13,7 +13,6 @@ interface MemberViewProps {
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
-  // --- [기존 상태 및 기능 100% 보존] ---
   const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -42,7 +41,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [기존 핸들러 로직 보존] ---
   const fetchFromVercel = async () => {
     setIsLoading(true);
     try {
@@ -68,16 +66,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
       if (res.ok) alert("서버 저장 성공!");
     } catch (err) { alert("서버 저장 실패"); }
     finally { setIsLoading(false); }
-  };
-
-  const handleFileUploadAndLink = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsLoading(true);
-    setTimeout(() => {
-      alert(`파일 [${file.name}]이 서버로 전송되었습니다.\n생성된 링크: https://vercel-temp.storage/${file.name}`);
-      setIsLoading(false);
-    }, 1000);
   };
 
   const handleMessageSend = () => {
@@ -130,20 +118,27 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [수정: 소트 로직 - 체크된(값 있는) 회원이 상단으로 오도록 개선] ---
+  // --- [핵심 수정: 중복 소트 알고리즘] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
       for (const key of sortCriteria) {
-        const valA = String(a[key as keyof Member] || '').trim();
-        const valB = String(b[key as keyof Member] || '').trim();
+        let valA: any = a[key as keyof Member];
+        let valB: any = b[key as keyof Member];
 
-        // 가입(joined) 또는 다른 체크 항목 정렬 시: 값이 있는(체크된) 쪽이 상단(-1)
-        if (valA !== "" && valB === "") return -1;
-        if (valA === "" && valB !== "") return 1;
+        // 1. 값 정규화 (Boolean -> String)
+        if (typeof valA === 'boolean') valA = valA ? "1" : "";
+        if (typeof valB === 'boolean') valB = valB ? "1" : "";
 
-        // 둘 다 값이 있거나 없을 때 일반 문자열/숫자 비교
-        const res = valA.localeCompare(valB, 'ko', { numeric: true });
+        const strA = String(valA || '').trim();
+        const strB = String(valB || '').trim();
+
+        // 2. [가장 중요] 데이터가 있는 쪽(체크됨)을 상단(-1)으로 고정
+        if (strA !== "" && strB === "") return -1;
+        if (strA === "" && strB !== "") return 1;
+
+        // 3. 둘 다 값이 있거나 없을 때 이름/지점 등 일반 비교
+        const res = strA.localeCompare(strB, 'ko', { numeric: true });
         if (res !== 0) return res;
       }
       return 0;
@@ -187,7 +182,10 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
           <div className="flex gap-0.5 overflow-x-auto no-scrollbar pr-2">
             {[{label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'}].map(btn => (
-              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+              <button 
+                key={btn.key} 
+                onClick={() => setSortCriteria(prev => [btn.key, ...prev.filter(x => x !== btn.key)])} 
+                className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria[0] === btn.key ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
                 {btn.label}
               </button>
             ))}
