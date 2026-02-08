@@ -14,7 +14,7 @@ interface MemberViewProps {
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
-  // --- [1. 상태 관리 및 데이터 영속성] ---
+  // --- [1. 기본 상태 및 데이터 관리] ---
   const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -25,10 +25,10 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 차량 입력 최종 데이터를 따로 저장 (DB 업로드 시와 마찬가지로 독립 관리)
+  // [핵심] 차량 입력 최종 데이터를 별도 저장 (DB 업로드 및 수정 시 동기화)
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
 
-  // 데이터 모드 보호 (DB모드 진입 시 엑셀 기능 차단)
+  // [보안] 데이터 모드 판별 (DB 모드 시 엑셀 차단)
   const [currentFileType, setCurrentFileType] = useState<'EXCEL' | 'DB' | 'NONE'>(() => {
     if (members.length > 0) return members[0].id.includes('db_') ? 'DB' : 'EXCEL';
     return 'NONE';
@@ -38,12 +38,12 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [saveTargetType, setSaveTargetType] = useState<'EXCEL' | 'DB'>('EXCEL');
   const [saveFileName, setSaveFileName] = useState('');
 
-  // --- [2. Ref 및 입력 제어] ---
+  // --- [2. Ref 및 UI 제어] ---
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
   const branches = ['전체', '본점', '제일', '신촌', '교대', '작전', '효성', '부평', '갈산'];
 
-  // 모달 오픈 시 전화번호 중간 4자리의 맨 앞에 커서 고정 (UX 정밀 제어)
+  // 모달 오픈 시 연락처 중간 4자리 맨 앞(V자리)에 커서 강제 고정
   useEffect(() => {
     if (isModalOpen && phoneMidRef.current) {
       const input = phoneMidRef.current;
@@ -54,15 +54,13 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   }, [isModalOpen]);
 
-  // --- [3. 데이터 규격화 및 파일 업로드 로직] ---
+  // --- [3. 파일 업로드 및 데이터 규격화 (직책 무시 및 이름 보존)] ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'EXCEL' | 'DB') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (members.length > 0) {
-      if (!confirm("기존 데이터를 초기화하고 새로 로드하시겠습니까?")) {
-        e.target.value = ''; return;
-      }
+    if (members.length > 0 && !confirm("기존 데이터를 초기화하고 새로 로드하시겠습니까?")) {
+      e.target.value = ''; return;
     }
 
     setIsLoading(true);
@@ -75,25 +73,23 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           const mapped = json.map((d: any) => ({
             id: `db_${Math.random().toString(36).substring(2, 7)}`,
             sn: Number(d.id || 0), branch: d.branch || '본점', name: d.name || '',
-            position: '회원', // 직책은 건너뛰고 기본값 처리
-            phone: d.phone || '', address: d.addr || '',
+            position: '회원', phone: d.phone || '', address: d.addr || '',
             joined: d.joined || d.join_year || '', fee: d.fee === "1", attendance: d.attendance === "1",
             carNumber: d.car_num || '', memo: d.note || ''
           }));
           setMembers(mapped);
-          // 로드된 데이터 중 마지막 차량 번호를 영속성 저장소에 보관
+          // 로드된 데이터의 마지막 차량 번호를 기억
           if (mapped.length > 0) setLastSelectedCar(mapped[mapped.length - 1].carNumber);
         };
         reader.readAsText(file);
       } else {
-        // 엑셀 업로드: DB와 동일하게 직책은 무시하고 이름 필드 위주로 표준 규격화
         const data = await readExcel(file);
         setCurrentFileType('EXCEL');
         const mapped = data.map((d: any, idx: number) => ({
           id: Math.random().toString(36).substring(2, 11),
           sn: idx + 1,
           branch: d.branch || d.지점 || '본점',
-          name: d.name || d.성함 || d.이름 || '', // 이름 필드 매핑 로직 단순화 및 보강
+          name: d.name || d.성함 || d.이름 || '', // 이름 필드 매핑 복구
           phone: d.phone || d.연락처 || '010--',
           address: d.addr || d.address || d.주소 || '',
           joined: d.joined || d.가입 || '',
@@ -101,7 +97,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           attendance: d.attendance === "1" || d.attendance === true,
           carNumber: d.car_num || d.차량 || '',
           memo: d.note || d.비고 || '',
-          position: '회원' // 직책은 읽어오지 않음
+          position: '회원'
         }));
         setMembers(mapped);
         if (mapped.length > 0) setLastSelectedCar(mapped[mapped.length - 1].carNumber);
@@ -110,9 +106,9 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); e.target.value = ''; }
   };
 
-  // --- [4. 데이터 출력 규격화 및 저장] ---
+  // --- [4. 데이터 저장 및 규격 일원화] ---
   const openSaveModal = (type: 'EXCEL' | 'DB') => {
-    if (members.length === 0) return alert("저장할 데이터가 없습니다.");
+    if (members.length === 0) return alert("데이터가 없습니다.");
     if (type === 'EXCEL' && currentFileType === 'DB') return alert("보안 DB 모드에서는 엑셀 저장이 불가능합니다.");
     setSaveTargetType(type);
     setSaveFileName(`${memberTitle}_${format(new Date(), 'yyyyMMdd')}`);
@@ -124,7 +120,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
 
     if (saveTargetType === 'EXCEL') {
-      // 저장 시에도 DB 규격 테이블 순서와 명칭을 일원화
       const formatted = targetMembers.map(m => ({
         id: m.sn, branch: m.branch, name: m.name, phone: m.phone, addr: m.address, 
         join_year: m.joined, fee: m.fee ? "1" : "", attendance: m.attendance ? "1" : "", 
@@ -145,7 +140,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     setIsSaveModalOpen(false);
   };
 
-  // --- [5. UI 제어 및 모달 핸들러] ---
+  // --- [5. UI 헬퍼 및 롤백된 소트 로직] ---
   const getCarColor = (num: string) => {
     switch (num) {
       case '1': return 'text-red-500'; case '2': return 'text-orange-500'; case '3': return 'text-yellow-400';
@@ -158,10 +153,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     const sequence = ['', '1', '2', '3', '4', '5', '6'];
     const currentIndex = sequence.indexOf(current || '');
     const nextValue = sequence[(currentIndex + 1) % sequence.length];
-    setLastSelectedCar(nextValue); // 차량 데이터 최종 선택값 별도 저장
+    setLastSelectedCar(nextValue); 
     return nextValue;
   };
 
+  // [롤백 완료] 소트 기능 정상화
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -177,8 +173,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
   const handleModalSave = () => {
     if (!editingMember) return;
-    // 정보 저장 시 해당 차량 데이터를 영속성 데이터로 확정
-    setLastSelectedCar(editingMember.carNumber);
+    setLastSelectedCar(editingMember.carNumber); // 저장 시 최종 차량 번호 기억
     setMembers(prev => {
       const exists = prev.find(m => m.id === editingMember.id);
       return exists ? prev.map(m => m.id === editingMember.id ? editingMember : m) : [editingMember, ...prev];
@@ -190,7 +185,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     <div className="flex flex-col h-full bg-[#121212] p-1 text-gray-200 overflow-hidden font-sans">
       {isLoading && <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" /></div>}
       
-      {/* --- [A. 상단 도구바 영역] --- */}
+      {/* --- [A. 상단 툴바] --- */}
       <div className="flex flex-col w-full mb-1">
         <div className="flex items-center justify-between w-full h-10 px-0.5">
           <div className="flex items-center gap-2">
@@ -224,7 +219,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                     id: Math.random().toString(36).substring(2, 11), 
                     sn: 0, branch: selectedBranch === '전체' ? '본점' : selectedBranch, 
                     name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, 
-                    carNumber: lastSelectedCar, // 최종 사용 데이터 기본값으로 자동 할당
+                    carNumber: lastSelectedCar, // 영속성 데이터 자동 주입
                     memo: '' 
                 }); 
                 setIsModalOpen(true); 
@@ -232,7 +227,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           </div>
         </div>
 
-        {/* --- [B. 소트 및 상태바 UI (완벽 복구)] --- */}
+        {/* --- [B. 복구된 소트 및 상태바] --- */}
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
           <div className="flex gap-0.5 overflow-x-auto no-scrollbar pr-2">
             {[{label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'}].map(btn => (
@@ -252,7 +247,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* --- [C. 회원 목록 테이블 영역] --- */}
+      {/* --- [C. 회원 목록 테이블] --- */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed text-[12px] font-bold">
           <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black border-b border-[#3a3a5e]">
@@ -286,7 +281,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </table>
       </div>
 
-      {/* --- [D. 회원 추가/수정 모달 영역] --- */}
+      {/* --- [D. 회원 추가/수정 모달] --- */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-md bg-[#1a1a2e] rounded-2xl p-4 border border-white/10 shadow-2xl">
@@ -298,19 +293,19 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             <div className="space-y-2">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-[14px] text-blue-400 font-black mb-1 block">지점</label>
+                  <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">지점</label>
                   <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
                     {branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}
                   </select>
                 </div>
                 <div className="flex-[2]">
-                  <label className="text-[14px] text-blue-400 font-black mb-1 block">성함</label>
+                  <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">성함</label>
                   <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm focus:border-blue-500" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
                 </div>
               </div>
 
               <div>
-                <label className="text-[14px] text-blue-400 font-black mb-1 block">연락처 (010)</label>
+                <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">연락처 (010)</label>
                 <div className="flex items-center gap-1">
                   <div className="w-14 bg-white/10 border border-white/5 rounded-xl py-2 text-center text-gray-400 font-black text-sm">010</div>
                   <span className="text-gray-600">-</span>
@@ -329,9 +324,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
-              {/* 차/비/출/가 통합 관리 (시인성 및 명칭 '가입' 반영) */}
               <div className="pt-1">
-                <label className="text-[14px] text-blue-400 font-black mb-1 block">차/비/출/가 통합 관리</label>
+                <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">차/비/출/가 통합 관리</label>
                 <div className="grid grid-cols-4 gap-2">
                   <button onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber)})} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 active:bg-white/10">
                     <span className="text-[11px] text-emerald-400 font-black mb-1">차량</span>
@@ -361,16 +355,16 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       )}
 
-      {/* --- [E. 저장 파일명 입력 모달] --- */}
+      {/* --- [E. 저장 모달] --- */}
       {isSaveModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40">
-            <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2"><Save className="w-5 h-5 text-indigo-400" />{saveTargetType === 'EXCEL' ? '엑셀로 저장' : '보안 DB 저장'}</h3>
+          <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40 shadow-2xl">
+            <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2"><Save className="w-5 h-5 text-indigo-400" />{saveTargetType === 'EXCEL' ? '엑셀 저장' : 'DB 저장'}</h3>
             <div className="space-y-5">
               <input className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none focus:border-indigo-500 text-lg" value={saveFileName} onChange={(e) => setSaveFileName(e.target.value)} placeholder="파일명 입력" autoFocus />
               <div className="flex gap-3">
                 <button onClick={() => setIsSaveModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-300 rounded-2xl font-black">취소</button>
-                <button onClick={handleConfirmSave} className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black">저장 완료</button>
+                <button onClick={handleConfirmSave} className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">저장 완료</button>
               </div>
             </div>
           </div>
