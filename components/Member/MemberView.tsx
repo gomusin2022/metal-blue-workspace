@@ -93,7 +93,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [수정: 가입소트 방향 강제 반전 및 중복소트 로직] ---
+  // --- [수정: 가입소트 전용 로직 적용] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -107,11 +107,18 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         const strA = String(valA || '').trim();
         const strB = String(valB || '').trim();
 
-        // 반대로 정렬되는 현상 해결: 데이터(체크)가 있으면 상단(-1), 없으면 하단(1)
-        if (strA !== "" && strB === "") return -1;
-        if (strA === "" && strB !== "") return 1;
+        // [핵심수정] 가입소트("joined" 컬럼) 전용 비즈니스 로직
+        // 가입코드("26")가 있는 쪽이 위로(-1), 빈값("")이 아래로(1)
+        if (key === 'joined') {
+          if (strA === "26" && strB !== "26") return -1;
+          if (strA !== "26" && strB === "26") return 1;
+        } else {
+          // 일반 컬럼 소트: 빈 문자열을 아래로 강제 이동
+          if (strA !== "" && strB === "") return -1;
+          if (strA === "" && strB !== "") return 1;
+        }
 
-        // 데이터가 둘 다 있는 경우 문자열 비교
+        // 동일한 상태일 때만 사전식 정렬
         const res = strA.localeCompare(strB, 'ko', { numeric: true });
         if (res !== 0) return res;
       }
@@ -141,7 +148,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* 왼쪽 버튼 3개 삭제 */}
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
