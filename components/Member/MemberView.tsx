@@ -130,7 +130,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [수정: 가입소트 로직 방향 정상화] ---
+  // --- [수정: 소트 로직 - 체크된(값 있는) 회원이 상단으로 오도록 개선] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -138,12 +138,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         const valA = String(a[key as keyof Member] || '').trim();
         const valB = String(b[key as keyof Member] || '').trim();
 
-        // valA가 공백이고 valB가 값이 있으면: a를 뒤로 (1) -> 공백이 하단으로
-        if (valA === "" && valB !== "") return 1;
-        // valA에 값이 있고 valB가 공백이면: a를 앞으로 (-1) -> 데이터가 상단으로
+        // 가입(joined) 또는 다른 체크 항목 정렬 시: 값이 있는(체크된) 쪽이 상단(-1)
         if (valA !== "" && valB === "") return -1;
+        if (valA === "" && valB !== "") return 1;
 
-        // 둘 다 값이 있거나 둘 다 공백일 때 일반 비교
+        // 둘 다 값이 있거나 없을 때 일반 문자열/숫자 비교
         const res = valA.localeCompare(valB, 'ko', { numeric: true });
         if (res !== 0) return res;
       }
@@ -173,7 +172,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* 버튼 3개 삭제 상태 유지 */}
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
