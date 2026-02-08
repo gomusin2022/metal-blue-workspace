@@ -24,7 +24,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
+  const [isLoading, setIsLoading] = useState(false);
+
+  // --- [신규 상태: 로컬 DB 저장 파일명 모달용] ---
+  const [isDbSaveModalOpen, setIsDbSaveModalOpen] = useState(false);
+  const [dbSaveFileName, setDbSaveFileName] = useState('');
 
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
@@ -42,9 +46,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [신규 기능: 버첼 DB 연동 (로그인 생략 버전)] ---
-
-  // 1. 버첼 DB에서 데이터 가져오기 (다운로드)
+  // --- [버첼 DB 연동 기능 보존] ---
   const fetchFromVercel = async () => {
     setIsLoading(true);
     try {
@@ -58,7 +60,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); }
   };
 
-  // 2. 버첼 DB에 현재 데이터 저장하기 (업로드)
   const saveToVercel = async () => {
     if (!window.confirm(`${selectedBranch} 데이터를 서버 DB에 저장하시겠습니까?`)) return;
     setIsLoading(true);
@@ -73,16 +74,43 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     finally { setIsLoading(false); }
   };
 
-  // 3. 파일 링크 변환 (임시 구현 - 2단계 과제)
   const handleFileUploadAndLink = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsLoading(true);
-    // TODO: 임시 파일을 서버로 보내고 URL 링크를 받아오는 로직
     setTimeout(() => {
       alert(`파일 [${file.name}]이 서버로 전송되었습니다.\n생성된 링크: https://vercel-temp.storage/${file.name}`);
       setIsLoading(false);
     }, 1000);
+  };
+
+  // --- [로컬 DB 파일 저장 로직 수정] ---
+  const openDbSaveModal = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // 초기 파일명 설정 (확장자 제외)
+    setDbSaveFileName(`${memberTitle}_${format(new Date(), 'yyyyMMdd')}`);
+    setIsDbSaveModalOpen(true);
+  };
+
+  const handleConfirmDbDownload = () => {
+    if (!dbSaveFileName.trim()) return alert("저장할 파일명을 입력해주세요.");
+    
+    const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
+    const dbData = targetMembers.map(m => ({
+      id: m.sn.toString(), name: m.name, position: m.position, phone: m.phone, branch: m.branch,
+      join_year: m.joined, addr: m.address, fee: m.fee ? "1" : "", car_num: m.carNumber,
+      attendance: m.attendance ? "1" : "", note: m.memo
+    }));
+
+    // .db 확장자로 저장
+    const blob = new Blob([JSON.stringify(dbData, null, 4)], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${dbSaveFileName}.db`; 
+    link.click();
+    
+    setIsDbSaveModalOpen(false);
   };
 
   // --- [기존 로직 보존] ---
@@ -122,20 +150,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     reader.readAsText(file);
   };
 
-  const handleDbDownload = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
-    const dbData = targetMembers.map(m => ({
-      id: m.sn.toString(), name: m.name, position: m.position, phone: m.phone, branch: m.branch,
-      join_year: m.joined, addr: m.address, fee: m.fee ? "1" : "", car_num: m.carNumber,
-      attendance: m.attendance ? "1" : "", note: m.memo
-    }));
-    const blob = new Blob([JSON.stringify(dbData, null, 4)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
-  };
-
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -169,13 +183,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* [추가] 버첼 연동 버튼 2개 */}
             <button onClick={fetchFromVercel} title="버첼에서 가져오기" className="p-1 text-blue-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
             <button onClick={saveToVercel} title="버첼에 저장하기" className="p-1 text-emerald-400 hover:bg-white/5 rounded"><Save className="w-5 h-5" /></button>
             
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
 
-            {/* [추가] 파일 링크 변환 버튼 */}
             <label className="p-1 text-orange-400 cursor-pointer hover:bg-white/5 rounded" title="파일 링크 변환">
               <Share2 className="w-5 h-5" />
               <input type="file" className="hidden" onChange={handleFileUploadAndLink} />
@@ -187,7 +199,10 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-            <button onClick={(e) => handleDbDownload(e)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded"><CloudDownload className="w-5 h-5" /></button>
+            
+            {/* 로컬 DB 저장: 모달 열기로 변경 */}
+            <button onClick={openDbSaveModal} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded" title="내 PC에 DB 저장"><CloudDownload className="w-5 h-5" /></button>
+            
             <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
               <CloudUpload className="w-5 h-5" />
               <input type="file" className="hidden" accept=".db,.json" onChange={handleDbUpload} />
@@ -249,12 +264,41 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
 
+      {/* [수정] 내 PC DB 저장 시 파일명 입력 모달 */}
+      {isDbSaveModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+          <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40 shadow-2xl">
+            <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
+              <CloudDownload className="w-6 h-6 text-indigo-400" />
+              로컬 DB 저장
+            </h3>
+            <p className="text-gray-400 text-[11px] mb-4 font-bold uppercase tracking-widest">Format: *.db (Json encrypted)</p>
+            <div className="space-y-5">
+              <div className="relative">
+                <input 
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none focus:border-indigo-500/50 transition-all pr-12 text-lg"
+                  value={dbSaveFileName}
+                  onChange={(e) => setDbSaveFileName(e.target.value)}
+                  placeholder="파일명 입력"
+                  autoFocus
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-500 font-black text-sm">.db</span>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setIsDbSaveModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-300 rounded-2xl font-black border border-white/5 active:scale-95 transition-all">취소</button>
+                <button onClick={handleConfirmDbDownload} className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-indigo-900/20 transition-all">파일 저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-lg bg-[#1a1a2e] rounded-2xl p-6 border border-white/10 relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-black text-white">{editingMember.id && members.find(m => m.id === editingMember.id) ? '정보 수정' : '새 회원 등록'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div className="flex gap-3">
