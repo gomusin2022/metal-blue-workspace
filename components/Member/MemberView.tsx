@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { 
-  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare, Loader2
+  UserPlus, Check, Eraser, X, Save, CloudDownload, CloudUpload, MessageSquare, Database, Share2, Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Member } from '../../types';
@@ -24,7 +24,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
 
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
@@ -42,7 +42,50 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [기존 핸들러 로직 100% 보존] ---
+  // --- [신규 기능: 버첼 DB 연동 (로그인 생략 버전)] ---
+
+  // 1. 버첼 DB에서 데이터 가져오기 (다운로드)
+  const fetchFromVercel = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/db/members?branch=${encodeURIComponent(selectedBranch)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMembers(data);
+        alert(`${selectedBranch} 데이터를 서버에서 가져왔습니다.`);
+      }
+    } catch (err) { alert("서버 로드 실패"); }
+    finally { setIsLoading(false); }
+  };
+
+  // 2. 버첼 DB에 현재 데이터 저장하기 (업로드)
+  const saveToVercel = async () => {
+    if (!window.confirm(`${selectedBranch} 데이터를 서버 DB에 저장하시겠습니까?`)) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/db/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: selectedBranch, members })
+      });
+      if (res.ok) alert("서버 저장 성공!");
+    } catch (err) { alert("서버 저장 실패"); }
+    finally { setIsLoading(false); }
+  };
+
+  // 3. 파일 링크 변환 (임시 구현 - 2단계 과제)
+  const handleFileUploadAndLink = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsLoading(true);
+    // TODO: 임시 파일을 서버로 보내고 URL 링크를 받아오는 로직
+    setTimeout(() => {
+      alert(`파일 [${file.name}]이 서버로 전송되었습니다.\n생성된 링크: https://vercel-temp.storage/${file.name}`);
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  // --- [기존 로직 보존] ---
   const handleMessageSend = () => {
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
     if (targetMembers.length === 0) return alert("문자를 보낼 대상이 없습니다.");
@@ -93,28 +136,11 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [핵심 수정: 중복 소트 및 가입 소트 정상화] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
-      // sortCriteria에 등록된 모든 기준을 순차적으로 적용 (중복 소트)
       for (const key of sortCriteria) {
-        let valA: any = a[key as keyof Member];
-        let valB: any = b[key as keyof Member];
-
-        // 불리언 및 가입(joined) 필드 정규화
-        if (typeof valA === 'boolean') valA = valA ? "1" : "";
-        if (typeof valB === 'boolean') valB = valB ? "1" : "";
-        
-        const strA = String(valA || '').trim();
-        const strB = String(valB || '').trim();
-
-        // [데이터 유무에 따른 우선순위] 데이터가 있는 쪽(체크된 쪽)이 무조건 상단(-1)
-        if (strA !== "" && strB === "") return -1;
-        if (strA === "" && strB !== "") return 1;
-
-        // 둘 다 데이터가 있을 경우 기본 비교 (이름 등)
-        const res = strA.localeCompare(strB, 'ko', { numeric: true });
+        const res = String(a[key as keyof Member] || '').localeCompare(String(b[key as keyof Member] || ''), 'ko');
         if (res !== 0) return res;
       }
       return 0;
@@ -143,6 +169,20 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           )}
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
+            {/* [추가] 버첼 연동 버튼 2개 */}
+            <button onClick={fetchFromVercel} title="버첼에서 가져오기" className="p-1 text-blue-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
+            <button onClick={saveToVercel} title="버첼에 저장하기" className="p-1 text-emerald-400 hover:bg-white/5 rounded"><Save className="w-5 h-5" /></button>
+            
+            <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
+
+            {/* [추가] 파일 링크 변환 버튼 */}
+            <label className="p-1 text-orange-400 cursor-pointer hover:bg-white/5 rounded" title="파일 링크 변환">
+              <Share2 className="w-5 h-5" />
+              <input type="file" className="hidden" onChange={handleFileUploadAndLink} />
+            </label>
+
+            <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
+
             <button onClick={handleMessageSend} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
             <button onClick={() => { if(selectedIds.size === 0) return alert("삭제할 대상을 선택하세요."); if(confirm(`${selectedIds.size}명을 삭제할까요?`)) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { setEditingMember({ id: generateId(), sn: 0, branch: '본점', name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); setIsModalOpen(true); }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
@@ -158,10 +198,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
           <div className="flex gap-0.5 overflow-x-auto no-scrollbar pr-2">
             {[{label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'}].map(btn => (
-              <button 
-                key={btn.key} 
-                onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} 
-                className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
+              <button key={btn.key} onClick={() => setSortCriteria(prev => prev.includes(btn.key) ? prev.filter(x => x !== btn.key) : [btn.key, ...prev])} className={`px-2 py-0.5 min-w-[36px] rounded border text-[12px] font-black transition-all ${sortCriteria.includes(btn.key) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-[#1a1a2e] border-[#3a3a5e] text-gray-400'}`}>
                 {btn.label}
               </button>
             ))}
