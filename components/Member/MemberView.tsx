@@ -14,7 +14,6 @@ interface MemberViewProps {
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
-  // --- [1. 기본 상태 및 데이터 관리] ---
   const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -24,11 +23,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false); 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // [핵심] 차량 입력 최종 데이터를 별도 저장 (DB 업로드 및 수정 시 동기화)
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
 
-  // [보안] 데이터 모드 판별 (DB 모드 시 엑셀 차단)
   const [currentFileType, setCurrentFileType] = useState<'EXCEL' | 'DB' | 'NONE'>(() => {
     if (members.length > 0) return members[0].id.includes('db_') ? 'DB' : 'EXCEL';
     return 'NONE';
@@ -38,31 +34,26 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [saveTargetType, setSaveTargetType] = useState<'EXCEL' | 'DB'>('EXCEL');
   const [saveFileName, setSaveFileName] = useState('');
 
-  // --- [2. Ref 및 UI 제어] ---
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
   const branches = ['전체', '본점', '제일', '신촌', '교대', '작전', '효성', '부평', '갈산'];
 
-  // 모달 오픈 시 연락처 중간 4자리 맨 앞(V자리)에 커서 강제 고정
   useEffect(() => {
     if (isModalOpen && phoneMidRef.current) {
       const input = phoneMidRef.current;
       setTimeout(() => {
         input.focus();
         input.setSelectionRange(0, 0); 
-      }, 100);
+      }, 50);
     }
   }, [isModalOpen]);
 
-  // --- [3. 파일 업로드 및 데이터 규격화 (직책 무시 및 이름 보존)] ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'EXCEL' | 'DB') => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (members.length > 0 && !confirm("기존 데이터를 초기화하고 새로 로드하시겠습니까?")) {
+    if (members.length > 0 && !confirm("기존 데이터를 초기화하시겠습니까?")) {
       e.target.value = ''; return;
     }
-
     setIsLoading(true);
     try {
       if (type === 'DB') {
@@ -78,7 +69,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             carNumber: d.car_num || '', memo: d.note || ''
           }));
           setMembers(mapped);
-          // 로드된 데이터의 마지막 차량 번호를 기억
           if (mapped.length > 0) setLastSelectedCar(mapped[mapped.length - 1].carNumber);
         };
         reader.readAsText(file);
@@ -87,38 +77,30 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         setCurrentFileType('EXCEL');
         const mapped = data.map((d: any, idx: number) => ({
           id: Math.random().toString(36).substring(2, 11),
-          sn: idx + 1,
-          branch: d.branch || d.지점 || '본점',
-          name: d.name || d.성함 || d.이름 || '', // 이름 필드 매핑 복구
-          phone: d.phone || d.연락처 || '010--',
-          address: d.addr || d.address || d.주소 || '',
-          joined: d.joined || d.가입 || '',
-          fee: d.fee === "1" || d.fee === true,
+          sn: idx + 1, branch: d.branch || d.지점 || '본점', name: d.name || d.성함 || d.이름 || '',
+          phone: d.phone || d.연락처 || '010--', address: d.addr || d.address || d.주소 || '',
+          joined: d.joined || d.가입 || '', fee: d.fee === "1" || d.fee === true,
           attendance: d.attendance === "1" || d.attendance === true,
-          carNumber: d.car_num || d.차량 || '',
-          memo: d.note || d.비고 || '',
-          position: '회원'
+          carNumber: d.car_num || d.차량 || '', memo: d.note || d.비고 || '', position: '회원'
         }));
         setMembers(mapped);
         if (mapped.length > 0) setLastSelectedCar(mapped[mapped.length - 1].carNumber);
       }
-    } catch (err) { alert("파일 로드 중 로직 오류가 발생했습니다."); }
+    } catch (err) { alert("로드 오류"); }
     finally { setIsLoading(false); e.target.value = ''; }
   };
 
-  // --- [4. 데이터 저장 및 규격 일원화] ---
   const openSaveModal = (type: 'EXCEL' | 'DB') => {
-    if (members.length === 0) return alert("데이터가 없습니다.");
-    if (type === 'EXCEL' && currentFileType === 'DB') return alert("보안 DB 모드에서는 엑셀 저장이 불가능합니다.");
+    if (members.length === 0) return;
+    if (type === 'EXCEL' && currentFileType === 'DB') return alert("보안 DB 모드 차단");
     setSaveTargetType(type);
     setSaveFileName(`${memberTitle}_${format(new Date(), 'yyyyMMdd')}`);
     setIsSaveModalOpen(true);
   };
 
   const handleConfirmSave = () => {
-    if (!saveFileName.trim()) return alert("파일명을 입력하세요.");
+    if (!saveFileName.trim()) return;
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
-
     if (saveTargetType === 'EXCEL') {
       const formatted = targetMembers.map(m => ({
         id: m.sn, branch: m.branch, name: m.name, phone: m.phone, addr: m.address, 
@@ -140,7 +122,28 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     setIsSaveModalOpen(false);
   };
 
-  // --- [5. UI 헬퍼 및 롤백된 소트 로직] ---
+  // --- [정렬 로직 복구 및 공백 하단 배치 수정] ---
+  const displayMembers = useMemo(() => {
+    let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
+    return [...filtered].sort((a, b) => {
+      for (const key of sortCriteria) {
+        const valA = a[key as keyof Member];
+        const valB = b[key as keyof Member];
+
+        // 공백 데이터 처리 (공백은 항상 맨 아래로)
+        if (!valA && valB) return 1;
+        if (valA && !valB) return -1;
+        if (!valA && !valB) continue;
+
+        const strA = String(valA);
+        const strB = String(valB);
+        const res = strA.localeCompare(strB, 'ko');
+        if (res !== 0) return res;
+      }
+      return 0;
+    });
+  }, [members, selectedBranch, sortCriteria]);
+
   const getCarColor = (num: string) => {
     switch (num) {
       case '1': return 'text-red-500'; case '2': return 'text-orange-500'; case '3': return 'text-yellow-400';
@@ -153,27 +156,13 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     const sequence = ['', '1', '2', '3', '4', '5', '6'];
     const currentIndex = sequence.indexOf(current || '');
     const nextValue = sequence[(currentIndex + 1) % sequence.length];
-    setLastSelectedCar(nextValue); 
+    setLastSelectedCar(nextValue);
     return nextValue;
   };
 
-  // [롤백 완료] 소트 기능 정상화
-  const displayMembers = useMemo(() => {
-    let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
-    return [...filtered].sort((a, b) => {
-      for (const key of sortCriteria) {
-        const valA = String(a[key as keyof Member] || '');
-        const valB = String(b[key as keyof Member] || '');
-        const res = valA.localeCompare(valB, 'ko');
-        if (res !== 0) return res;
-      }
-      return 0;
-    });
-  }, [members, selectedBranch, sortCriteria]);
-
   const handleModalSave = () => {
     if (!editingMember) return;
-    setLastSelectedCar(editingMember.carNumber); // 저장 시 최종 차량 번호 기억
+    setLastSelectedCar(editingMember.carNumber);
     setMembers(prev => {
       const exists = prev.find(m => m.id === editingMember.id);
       return exists ? prev.map(m => m.id === editingMember.id ? editingMember : m) : [editingMember, ...prev];
@@ -185,7 +174,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     <div className="flex flex-col h-full bg-[#121212] p-1 text-gray-200 overflow-hidden font-sans">
       {isLoading && <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" /></div>}
       
-      {/* --- [A. 상단 툴바] --- */}
       <div className="flex flex-col w-full mb-1">
         <div className="flex items-center justify-between w-full h-10 px-0.5">
           <div className="flex items-center gap-2">
@@ -195,39 +183,24 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               ) : memberTitle}
             </h2>
           </div>
-          <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            <label className={`p-1 rounded cursor-pointer ${currentFileType === 'DB' ? 'opacity-10 cursor-not-allowed' : 'text-emerald-500 hover:bg-white/5'}`} title="엑셀 불러오기">
-              <Upload className="w-5 h-5" />
-              <input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => handleFileUpload(e, 'EXCEL')} disabled={currentFileType === 'DB'} />
+          <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shrink-0">
+            <label className={`p-1 rounded cursor-pointer ${currentFileType === 'DB' ? 'opacity-10 cursor-not-allowed' : 'text-emerald-500'}`}>
+              <Upload className="w-5 h-5" /><input type="file" className="hidden" accept=".xlsx,.xls" onChange={(e) => handleFileUpload(e, 'EXCEL')} disabled={currentFileType === 'DB'} />
             </label>
-            <button onClick={() => openSaveModal('EXCEL')} disabled={currentFileType === 'DB'} className={`p-1 rounded ${currentFileType === 'DB' ? 'opacity-10 cursor-not-allowed' : 'text-emerald-400 hover:bg-white/5'}`}>
-              <FileSpreadsheet className="w-5 h-5" />
-            </button>
+            <button onClick={() => openSaveModal('EXCEL')} disabled={currentFileType === 'DB'} className={`p-1 rounded ${currentFileType === 'DB' ? 'opacity-10 cursor-not-allowed' : 'text-emerald-400'}`}><FileSpreadsheet className="w-5 h-5" /></button>
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-            <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded">
-              <Database className="w-5 h-5" />
-              <input type="file" className="hidden" accept=".db" onChange={(e) => handleFileUpload(e, 'DB')} />
-            </label>
-            <button onClick={() => openSaveModal('DB')} className="p-1 text-indigo-400 hover:bg-white/5 rounded">
-              <Save className="w-5 h-5" />
-            </button>
+            <label className="p-1 text-indigo-500 cursor-pointer"><Database className="w-5 h-5" /><input type="file" className="hidden" accept=".db" onChange={(e) => handleFileUpload(e, 'DB')} /></label>
+            <button onClick={() => openSaveModal('DB')} className="p-1 text-indigo-400"><Save className="w-5 h-5" /></button>
             <div className="w-px h-3 bg-[#3a3a5e] my-auto mx-0.5" />
-            <button onClick={() => setIsMessageModalOpen(true)} className="p-1 text-orange-400 hover:bg-orange-500/10 rounded"><MessageSquare className="w-5 h-5" /></button>
-            <button onClick={() => { if(selectedIds.size === 0) return alert("대상 없음"); if(confirm("삭제하시겠습니까?")) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500 hover:bg-red-500/10 rounded"><Eraser className="w-5 h-5" /></button>
+            <button onClick={() => setIsMessageModalOpen(true)} className="p-1 text-orange-400"><MessageSquare className="w-5 h-5" /></button>
+            <button onClick={() => { if(selectedIds.size === 0) return; if(confirm("삭제?")) { setMembers(members.filter(m => !selectedIds.has(m.id))); setSelectedIds(new Set()); } }} className="p-1 text-red-500"><Eraser className="w-5 h-5" /></button>
             <button onClick={() => { 
-                setEditingMember({ 
-                    id: Math.random().toString(36).substring(2, 11), 
-                    sn: 0, branch: selectedBranch === '전체' ? '본점' : selectedBranch, 
-                    name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, 
-                    carNumber: lastSelectedCar, // 영속성 데이터 자동 주입
-                    memo: '' 
-                }); 
+                setEditingMember({ id: Math.random().toString(36).substring(2, 11), sn: 0, branch: selectedBranch === '전체' ? '본점' : selectedBranch, name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, carNumber: lastSelectedCar, memo: '' }); 
                 setIsModalOpen(true); 
-            }} className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"><UserPlus className="w-5 h-5" /></button>
+            }} className="p-1 text-blue-500"><UserPlus className="w-5 h-5" /></button>
           </div>
         </div>
 
-        {/* --- [B. 복구된 소트 및 상태바] --- */}
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
           <div className="flex gap-0.5 overflow-x-auto no-scrollbar pr-2">
             {[{label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}, {label:'가입', key:'joined'}].map(btn => (
@@ -236,10 +209,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 shrink-0 font-black text-[11px] text-gray-500 ml-auto">
-            <span className="text-blue-400">{selectedIds.size}</span>
-            <span>/</span>
-            <span className="text-gray-300">{displayMembers.length}</span>
+          <div className="flex items-center gap-2 font-black text-[11px] text-gray-500 ml-auto">
+            <span className="text-blue-400">{selectedIds.size}</span><span>/</span><span className="text-gray-300">{displayMembers.length}</span>
             <select className="bg-[#1a1a2e] border border-blue-500/50 rounded px-1 py-0.5 text-blue-400 outline-none font-black ml-1" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
               {branches.map(b => <option key={b} value={b} className="bg-[#121212]">{b}</option>)}
             </select>
@@ -247,7 +218,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* --- [C. 회원 목록 테이블] --- */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed text-[12px] font-bold">
           <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black border-b border-[#3a3a5e]">
@@ -281,90 +251,81 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </table>
       </div>
 
-      {/* --- [D. 회원 추가/수정 모달] --- */}
+      {/* --- [회원 모달: 타이틀 및 구분선 삭제, 간격 최소화] --- */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-md bg-[#1a1a2e] rounded-2xl p-4 border border-white/10 shadow-2xl">
-            <div className="flex items-center justify-between mb-4 text-white font-black text-xl border-b border-white/5 pb-2">
-              <h3>{editingMember.sn > 0 ? '회원 정보 수정' : '신규 회원 등록'}</h3>
-              <button onClick={() => setIsModalOpen(false)}><X className="w-6 h-6 text-gray-500" /></button>
-            </div>
+          <div className="w-full max-w-md bg-[#1a1a2e] rounded-2xl p-4 border border-white/10 shadow-2xl relative">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-2 right-2 p-1"><X className="w-6 h-6 text-gray-500" /></button>
             
-            <div className="space-y-2">
-              <div className="flex gap-3">
+            <div className="flex flex-col gap-1.5 pt-4"> {/* 줄간격 최소화 */}
+              <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">지점</label>
-                  <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
+                  <label className="text-[14px] text-blue-400 font-black ml-1 block leading-tight">지점</label>
+                  <select className="w-full h-9 bg-white/5 border border-white/10 rounded-xl px-3 text-white font-bold outline-none text-sm" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
                     {branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}
                   </select>
                 </div>
                 <div className="flex-[2]">
-                  <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">성함</label>
-                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm focus:border-blue-500" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
+                  <label className="text-[14px] text-blue-400 font-black ml-1 block leading-tight">성함</label>
+                  <input className="w-full h-9 bg-white/5 border border-white/10 rounded-xl px-3 text-white font-bold outline-none text-sm" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
                 </div>
               </div>
 
               <div>
-                <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">연락처 (010)</label>
+                <label className="text-[14px] text-blue-400 font-black ml-1 block leading-tight">연락처 (010)</label>
                 <div className="flex items-center gap-1">
-                  <div className="w-14 bg-white/10 border border-white/5 rounded-xl py-2 text-center text-gray-400 font-black text-sm">010</div>
+                  <div className="w-14 h-9 bg-white/10 border border-white/5 rounded-xl flex items-center justify-center text-gray-400 font-black text-sm">010</div>
                   <span className="text-gray-600">-</span>
-                  <input ref={phoneMidRef} type="tel" className="w-20 bg-white/5 border border-white/10 rounded-xl py-2 text-white text-center font-bold outline-none text-sm focus:border-blue-500" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { 
+                  <input ref={phoneMidRef} type="tel" className="w-20 h-9 bg-white/5 border border-white/10 rounded-xl text-white text-center font-bold outline-none text-sm focus:border-blue-500" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { 
                     const v = e.target.value.replace(/\D/g,'').slice(0,4); 
-                    const p = (editingMember.phone || '010--').split('-'); 
-                    setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); 
+                    setEditingMember({...editingMember, phone: `010-${v}-${(editingMember.phone || '').split('-')[2]||''}`}); 
                     if(v.length === 4) phoneEndRef.current?.focus(); 
                   }} maxLength={4} />
                   <span className="text-gray-600">-</span>
-                  <input ref={phoneEndRef} type="tel" className="w-20 bg-white/5 border border-white/10 rounded-xl py-2 text-white text-center font-bold outline-none text-sm focus:border-blue-500" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { 
+                  <input ref={phoneEndRef} type="tel" className="w-20 h-9 bg-white/5 border border-white/10 rounded-xl text-white text-center font-bold outline-none text-sm focus:border-blue-500" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { 
                     const v = e.target.value.replace(/\D/g,'').slice(0,4); 
-                    const p = (editingMember.phone || '010--').split('-'); 
-                    setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); 
+                    setEditingMember({...editingMember, phone: `010-${(editingMember.phone || '').split('-')[1]||''}-${v}`}); 
                   }} maxLength={4} />
                 </div>
               </div>
 
-              <div className="pt-1">
-                <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">차/비/출/가 통합 관리</label>
-                <div className="grid grid-cols-4 gap-2">
-                  <button onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber)})} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 active:bg-white/10">
-                    <span className="text-[11px] text-emerald-400 font-black mb-1">차량</span>
-                    <span className={`text-2xl font-black ${getCarColor(editingMember.carNumber)}`}>{editingMember.carNumber || '-'}</span>
-                  </button>
-                  <button onClick={() => setEditingMember({...editingMember, fee: !editingMember.fee})} className={`flex flex-col items-center justify-center p-2 rounded-xl border ${editingMember.fee ? 'bg-yellow-400/20 border-yellow-400/50' : 'bg-white/5 border-white/5'}`}>
-                    <span className="text-[11px] text-yellow-400 font-black mb-1">회비</span>
-                    <Check className={`w-6 h-6 ${editingMember.fee ? 'text-yellow-400' : 'text-gray-700'}`} />
-                  </button>
-                  <button onClick={() => setEditingMember({...editingMember, attendance: !editingMember.attendance})} className={`flex flex-col items-center justify-center p-2 rounded-xl border ${editingMember.attendance ? 'bg-green-500/20 border-green-500/50' : 'bg-white/5 border-white/5'}`}>
-                    <span className="text-[11px] text-green-500 font-black mb-1">출결</span>
-                    <Check className={`w-6 h-6 ${editingMember.attendance ? 'text-green-500' : 'text-gray-700'}`} />
-                  </button>
-                  <button onClick={() => setEditingMember({...editingMember, joined: editingMember.joined?.includes('26') ? '' : '26'})} className={`flex flex-col items-center justify-center p-2 rounded-xl border ${editingMember.joined?.includes('26') ? 'bg-purple-400/20 border-purple-400/50' : 'bg-white/5 border-white/5'}`}>
-                    <span className="text-[11px] text-purple-400 font-black mb-1">가입</span>
-                    <Check className={`w-6 h-6 ${editingMember.joined?.includes('26') ? 'text-purple-400' : 'text-gray-700'}`} />
-                  </button>
-                </div>
+              <div className="grid grid-cols-4 gap-2 pt-1"> {/* 차비출가 버튼 섹션 (타이틀 행 삭제) */}
+                <button onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber)})} className="flex flex-col h-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 active:bg-white/10">
+                  <span className="text-[11px] text-emerald-400 font-black leading-tight">차량</span>
+                  <span className={`text-2xl font-black ${getCarColor(editingMember.carNumber)} leading-tight`}>{editingMember.carNumber || '-'}</span>
+                </button>
+                <button onClick={() => setEditingMember({...editingMember, fee: !editingMember.fee})} className={`flex flex-col h-14 items-center justify-center rounded-xl border ${editingMember.fee ? 'bg-yellow-400/20 border-yellow-400/50' : 'bg-white/5 border-white/5'}`}>
+                  <span className="text-[11px] text-yellow-400 font-black leading-tight">회비</span>
+                  <Check className={`w-6 h-6 ${editingMember.fee ? 'text-yellow-400' : 'text-gray-700'}`} />
+                </button>
+                <button onClick={() => setEditingMember({...editingMember, attendance: !editingMember.attendance})} className={`flex flex-col h-14 items-center justify-center rounded-xl border ${editingMember.attendance ? 'bg-green-500/20 border-green-500/50' : 'bg-white/5 border-white/5'}`}>
+                  <span className="text-[11px] text-green-500 font-black leading-tight">출결</span>
+                  <Check className={`w-6 h-6 ${editingMember.attendance ? 'text-green-500' : 'text-gray-700'}`} />
+                </button>
+                <button onClick={() => setEditingMember({...editingMember, joined: editingMember.joined?.includes('26') ? '' : '26'})} className={`flex flex-col h-14 items-center justify-center rounded-xl border ${editingMember.joined?.includes('26') ? 'bg-purple-400/20 border-purple-400/50' : 'bg-white/5 border-white/5'}`}>
+                  <span className="text-[11px] text-purple-400 font-black leading-tight">가입</span>
+                  <Check className={`w-6 h-6 ${editingMember.joined?.includes('26') ? 'text-purple-400' : 'text-gray-700'}`} />
+                </button>
               </div>
 
-              <div className="flex gap-2 pt-4">
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 bg-white/5 text-gray-400 rounded-xl font-black border border-white/5">취소</button>
-                <button onClick={handleModalSave} className="flex-[2] py-3.5 bg-blue-600 text-white rounded-xl font-black shadow-lg">정보 저장 완료</button>
+              <div className="flex gap-2 pt-3">
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 h-12 bg-white/5 text-gray-400 rounded-xl font-black border border-white/5">취소</button>
+                <button onClick={handleModalSave} className="flex-[2] h-12 bg-blue-600 text-white rounded-xl font-black shadow-lg">저장 완료</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- [E. 저장 모달] --- */}
       {isSaveModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40 shadow-2xl">
-            <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2"><Save className="w-5 h-5 text-indigo-400" />{saveTargetType === 'EXCEL' ? '엑셀 저장' : 'DB 저장'}</h3>
-            <div className="space-y-5">
-              <input className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none focus:border-indigo-500 text-lg" value={saveFileName} onChange={(e) => setSaveFileName(e.target.value)} placeholder="파일명 입력" autoFocus />
+          <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40">
+            <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2"><Save className="w-5 h-5 text-indigo-400" />저장</h3>
+            <div className="space-y-4">
+              <input className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-white font-black outline-none focus:border-indigo-500 text-lg" value={saveFileName} onChange={(e) => setSaveFileName(e.target.value)} placeholder="파일명" autoFocus />
               <div className="flex gap-3">
-                <button onClick={() => setIsSaveModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-300 rounded-2xl font-black">취소</button>
-                <button onClick={handleConfirmSave} className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">저장 완료</button>
+                <button onClick={() => setIsSaveModalOpen(false)} className="flex-1 h-14 bg-white/5 text-gray-400 rounded-2xl font-black">취소</button>
+                <button onClick={handleConfirmSave} className="flex-[2] h-14 bg-indigo-600 text-white rounded-2xl font-black">저장</button>
               </div>
             </div>
           </div>
