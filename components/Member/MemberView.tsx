@@ -14,7 +14,7 @@ interface MemberViewProps {
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) => {
-  // --- [상태 관리] ---
+  // --- [상태 관리: 기존 100% 보존] ---
   const [memberTitle, setMemberTitle] = useState('회원관리 목록');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -27,16 +27,17 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [lastClickedMemberId, setLastClickedMemberId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- [신규 모드 상태] ---
+  // --- [신규 상태: 모드 및 저장 모달 관리] ---
   const [currentFileType, setCurrentFileType] = useState<'EXCEL' | 'DB' | 'NONE'>('NONE'); 
-  const [isDbSaveModalOpen, setIsDbSaveModalOpen] = useState(false);
-  const [dbSaveFileName, setDbSaveFileName] = useState('');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false); // 통합 저장 모달 (Excel/DB 공용)
+  const [saveTargetType, setSaveTargetType] = useState<'EXCEL' | 'DB'>('EXCEL');
+  const [saveFileName, setSaveFileName] = useState('');
 
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
   const branches = ['전체', '본점', '제일', '신촌', '교대', '작전', '효성', '부평', '갈산'];
 
-  // --- [핵심: 지능형 업로드 로직] ---
+  // --- [데이터 업로드 로직] ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -62,7 +63,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     setIsLoading(true);
     try {
       if (isNextDb) {
-        // [DB 로드 로직]
         const reader = new FileReader();
         reader.onload = (event) => {
           const json = JSON.parse(event.target?.result as string);
@@ -77,7 +77,6 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         };
         reader.readAsText(file);
       } else {
-        // [엑셀 로드 로직]
         const data = await readExcel(file);
         setCurrentFileType('EXCEL');
         setMembers(data.map((d: any) => ({
@@ -97,29 +96,39 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     }
   };
 
-  // --- [데이터 내보내기 로직] ---
-  const handleExportExcel = () => {
-    if (currentFileType === 'DB') return; // 버튼 비활성화로 접근 차단되지만 로직상 방어
-    const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
-    exportToExcel(targetMembers, `${memberTitle}_${format(new Date(), 'yyyyMMdd')}`);
+  // --- [데이터 다운로드 모달 로직] ---
+  const openSaveModal = (type: 'EXCEL' | 'DB') => {
+    if (members.length === 0) return alert("저장할 데이터가 없습니다.");
+    if (type === 'EXCEL' && currentFileType === 'DB') return; // UI에서 비활성화 처리됨
+
+    setSaveTargetType(type);
+    setSaveFileName(`${memberTitle}_${format(new Date(), 'yyyyMMdd')}`);
+    setIsSaveModalOpen(true);
   };
 
-  const handleConfirmDbDownload = () => {
-    if (!dbSaveFileName.trim()) return alert("파일명들을 입력해주세요.");
+  const handleConfirmSave = () => {
+    if (!saveFileName.trim()) return alert("파일명들을 입력해주세요.");
     const targetMembers = selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers;
-    const dbData = targetMembers.map(m => ({
-      id: m.sn.toString(), name: m.name, position: m.position, phone: m.phone, branch: m.branch,
-      join_year: m.joined, addr: m.address, fee: m.fee ? "1" : "", car_num: m.carNumber,
-      attendance: m.attendance ? "1" : "", note: m.memo
-    }));
-    const blob = new Blob([JSON.stringify(dbData, null, 4)], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = `${dbSaveFileName}.db`; link.click();
-    setIsDbSaveModalOpen(false);
+
+    if (saveTargetType === 'EXCEL') {
+      // 엑셀 저장 실행
+      exportToExcel(targetMembers, saveFileName);
+    } else {
+      // 보안 DB 저장 실행
+      const dbData = targetMembers.map(m => ({
+        id: m.sn.toString(), name: m.name, position: m.position, phone: m.phone, branch: m.branch,
+        join_year: m.joined, addr: m.address, fee: m.fee ? "1" : "", car_num: m.carNumber,
+        attendance: m.attendance ? "1" : "", note: m.memo
+      }));
+      const blob = new Blob([JSON.stringify(dbData, null, 4)], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = `${saveFileName}.db`; link.click();
+    }
+    setIsSaveModalOpen(false);
   };
 
-  // --- [기존 로직 보존 영역] ---
+  // --- [기존 로직 보존: 차량 클릭, 정렬 등] ---
   const handleCarClick = (m: Member) => {
     let newValue;
     if (lastClickedMemberId === m.id) {
@@ -178,20 +187,27 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           </div>
 
           <div className="flex bg-[#1a1a2e] p-0.5 rounded border border-[#3a3a5e] gap-1 shadow-lg shrink-0">
-            {/* 엑셀 저장 버튼: DB 모드일 때 비활성화 */}
+            {/* 엑셀 저장 버튼: 목록이 비었거나 DB 모드일 때 비활성화 */}
             <button 
-              onClick={handleExportExcel} 
-              disabled={currentFileType === 'DB'}
-              title={currentFileType === 'DB' ? "보안 모드에선 엑셀 저장이 불가능합니다" : "엑셀 저장"} 
-              className={`p-1 rounded transition-all ${currentFileType === 'DB' ? 'opacity-20 cursor-not-allowed' : 'text-emerald-400 hover:bg-white/5'}`}
+              onClick={() => openSaveModal('EXCEL')} 
+              disabled={currentFileType === 'DB' || members.length === 0}
+              title={members.length === 0 ? "저장할 데이터가 없습니다" : currentFileType === 'DB' ? "보안 모드에선 엑셀 저장이 불가능합니다" : "엑셀 저장"} 
+              className={`p-1 rounded transition-all ${(currentFileType === 'DB' || members.length === 0) ? 'opacity-20 cursor-not-allowed' : 'text-emerald-400 hover:bg-white/5'}`}
             >
               <FileSpreadsheet className="w-5 h-5" />
             </button>
 
-            {/* DB 저장 버튼 */}
-            <button onClick={() => setIsDbSaveModalOpen(true)} title="DB 파일 저장" className="p-1 text-indigo-400 hover:bg-white/5 rounded"><Database className="w-5 h-5" /></button>
+            {/* DB 저장 버튼: 목록이 비었을 때 비활성화 */}
+            <button 
+              onClick={() => openSaveModal('DB')} 
+              disabled={members.length === 0}
+              title={members.length === 0 ? "저장할 데이터가 없습니다" : "DB 파일 저장"} 
+              className={`p-1 rounded transition-all ${members.length === 0 ? 'opacity-20 cursor-not-allowed' : 'text-indigo-400 hover:bg-white/5'}`}
+            >
+              <Database className="w-5 h-5" />
+            </button>
             
-            {/* 통합 업로드 버튼 */}
+            {/* 통합 파일 업로드 버튼 (Excel/DB 지원) */}
             <label className="p-1 text-indigo-500 cursor-pointer hover:bg-indigo-500/10 rounded" title="파일 업로드 (Excel/DB)">
               <CloudUpload className="w-5 h-5" />
               <input type="file" className="hidden" accept=".xlsx,.xls,.db" onChange={handleFileUpload} />
@@ -204,7 +220,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           </div>
         </div>
 
-        {/* 필터 및 정렬바 */}
+        {/* ... 필터 및 정렬바 (100% 동일 보존) ... */}
         <div className="flex items-center justify-between w-full border-t border-[#3a3a5e]/20 pt-1">
           <div className="flex gap-0.5 overflow-x-auto no-scrollbar pr-2">
             {[{label:'지점', key:'branch'}, {label:'이름', key:'name'}, {label:'차량', key:'carNumber'}, {label:'회비', key:'fee'}, {label:'출결', key:'attendance'}].map(btn => (
@@ -229,7 +245,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
               <th className="p-0.5 w-4 text-left">지</th>
               <th className="p-0.5 w-[54px] text-left">이름</th>
               <th className="p-0.5 w-[94px] text-left">연락처</th>
-              <th className="p-0.5 w-12 text-left text-gray-400 text-[10px]">주소</th>
+              <th className="p-0.5 w-12 text-left text-gray-400 truncate">주소</th>
               <th className="p-0.5 w-5 text-right text-emerald-400">차</th>
               <th className="p-0.5 w-5 text-right">비</th>
               <th className="p-0.5 w-5 text-right">출</th>
@@ -253,15 +269,25 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </table>
       </div>
 
-      {/* DB 저장 모달 */}
-      {isDbSaveModalOpen && (
+      <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
+
+      {/* [통합 저장 모달: Excel 및 DB 공용] */}
+      {isSaveModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
           <div className="w-full max-w-sm bg-[#1a1a2e] rounded-3xl p-6 border border-indigo-500/40 shadow-2xl">
-            <h3 className="text-xl font-black text-white mb-4">보안 DB 파일 저장</h3>
-            <input className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none mb-4" value={dbSaveFileName} onChange={(e) => setDbSaveFileName(e.target.value)} placeholder="파일명 입력" autoFocus />
-            <div className="flex gap-3">
-              <button onClick={() => setIsDbSaveModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-300 rounded-2xl font-black">취소</button>
-              <button onClick={handleConfirmDbDownload} className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black">저장 완료 (.db)</button>
+            <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
+              <Save className="w-5 h-5 text-indigo-400" />
+              {saveTargetType === 'EXCEL' ? '엑셀로 저장' : '보안 DB 파일 저장'}
+            </h3>
+            <p className="text-gray-400 text-[11px] mb-4 font-bold uppercase tracking-widest">
+              Format: {saveTargetType === 'EXCEL' ? '.xlsx' : '.db'}
+            </p>
+            <div className="space-y-5">
+              <input className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-black outline-none focus:border-indigo-500/50 transition-all text-lg" value={saveFileName} onChange={(e) => setSaveFileName(e.target.value)} placeholder="파일명 입력" autoFocus />
+              <div className="flex gap-3">
+                <button onClick={() => setIsSaveModalOpen(false)} className="flex-1 py-4 bg-white/5 text-gray-300 rounded-2xl font-black border border-white/5 active:scale-95">취소</button>
+                <button onClick={handleConfirmSave} className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-indigo-900/20">저장 완료</button>
+              </div>
             </div>
           </div>
         </div>
@@ -278,31 +304,28 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             <div className="space-y-4">
               <div className="flex gap-3">
                 <div className="flex-1 space-y-1">
-                  <label className="text-[10px] text-blue-400 font-black">지점</label>
+                  <label className="text-[10px] text-blue-400 font-black ml-1">지점</label>
                   <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
                     {branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}
                   </select>
                 </div>
                 <div className="flex-[2] space-y-1">
-                  <label className="text-[10px] text-blue-400 font-black">성함</label>
-                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
+                  <label className="text-[10px] text-blue-400 font-black ml-1">성함</label>
+                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-blue-400 font-black">연락처</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-black px-2">010</span>
-                  <input ref={phoneMidRef} type="tel" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-center font-bold" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
-                  <input ref={phoneEndRef} type="tel" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-center font-bold" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
+                <label className="text-[10px] text-blue-400 font-black ml-1">연락처 (010)</label>
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                  <input ref={phoneMidRef} type="tel" className="flex-1 bg-transparent text-white text-center font-bold outline-none" value={(editingMember.phone || '').split('-')[1] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${v}-${p[2]||''}`}); if(v.length===4) phoneEndRef.current?.focus(); }} maxLength={4} />
+                  <input ref={phoneEndRef} type="tel" className="flex-1 bg-transparent text-white text-center font-bold outline-none" value={(editingMember.phone || '').split('-')[2] || ''} onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,4); const p = (editingMember.phone || '010--').split('-'); setEditingMember({...editingMember, phone: `010-${p[1]||''}-${v}`}); }} maxLength={4} />
                 </div>
               </div>
-              <button onClick={handleModalSave} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black mt-4">수정사항 저장</button>
+              <button onClick={handleModalSave} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black mt-4 shadow-lg active:scale-95 transition-all">수정사항 저장</button>
             </div>
           </div>
         </div>
       )}
-
-      <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
     </div>
   );
 };
