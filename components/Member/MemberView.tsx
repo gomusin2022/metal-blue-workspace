@@ -25,7 +25,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // UX 개선: 마지막으로 선택된 차량 번호를 기억하여 기본값으로 활용
+  // UX 개선: 최종 사용된 차량 데이터를 기억하여 신규 추가 시 기본값으로 제공
   const [lastSelectedCar, setLastSelectedCar] = useState<string>('');
 
   // --- [데이터 모드 보호 로직] ---
@@ -38,18 +38,18 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
   const [saveTargetType, setSaveTargetType] = useState<'EXCEL' | 'DB'>('EXCEL');
   const [saveFileName, setSaveFileName] = useState('');
 
-  // --- [Ref 관리] ---
+  // --- [Ref 및 상수] ---
   const phoneMidRef = useRef<HTMLInputElement>(null);
   const phoneEndRef = useRef<HTMLInputElement>(null);
   const branches = ['전체', '본점', '제일', '신촌', '교대', '작전', '효성', '부평', '갈산'];
 
-  // UX 개선: 모달 오픈 시 중간 번호 첫 번째 자리에 커서 고정
+  // UX 개선: 모달 오픈 시 중간 번호 첫 번째 자리에 커서 고정 (010 - |1234)
   useEffect(() => {
     if (isModalOpen && phoneMidRef.current) {
       const input = phoneMidRef.current;
       setTimeout(() => {
         input.focus();
-        input.setSelectionRange(0, 0); // 커서를 무조건 맨 앞으로 이동
+        input.setSelectionRange(0, 0); 
       }, 100);
     }
   }, [isModalOpen]);
@@ -142,7 +142,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     const sequence = ['', '1', '2', '3', '4', '5', '6'];
     const currentIndex = sequence.indexOf(current || '');
     const nextValue = sequence[(currentIndex + 1) % sequence.length];
-    setLastSelectedCar(nextValue); // 사용한 차량 번호 업데이트
+    setLastSelectedCar(nextValue); // 최종 사용 데이터 업데이트
     return nextValue;
   };
 
@@ -172,7 +172,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     <div className="flex flex-col h-full bg-[#121212] p-1 text-gray-200 overflow-hidden font-sans">
       {isLoading && <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-500" /></div>}
       
-      {/* 상단 툴바 */}
+      {/* 상단 헤더 및 도구바 */}
       <div className="flex flex-col w-full mb-1">
         <div className="flex items-center justify-between w-full h-10 px-0.5">
           <div className="flex items-center gap-2">
@@ -207,7 +207,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                     sn: 0, 
                     branch: selectedBranch === '전체' ? '본점' : selectedBranch, 
                     name: '', position: '회원', phone: '010--', address: '', joined: '', fee: false, attendance: false, 
-                    carNumber: lastSelectedCar, // 최종 사용 데이터 기본값 할당
+                    carNumber: lastSelectedCar, 
                     memo: '' 
                 }); 
                 setIsModalOpen(true); 
@@ -218,7 +218,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* 테이블 목록 */}
+      {/* 테이블 데이터 목록 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed text-[12px] font-bold">
           <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black border-b border-[#3a3a5e]">
@@ -252,7 +252,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </table>
       </div>
 
-      {/* 수정/추가 모달 */}
+      {/* --- [회원 추가/수정 모달: 요구사항 최종 반영] --- */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-md bg-[#1a1a2e] rounded-2xl p-4 border border-white/10 shadow-2xl">
@@ -262,21 +262,23 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
             </div>
             
             <div className="space-y-2">
+              {/* 지점 및 성함 레이아웃 */}
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-[13px] text-blue-400 font-black ml-1 mb-1 block">지점</label>
+                  <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">지점</label>
                   <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm" value={editingMember.branch} onChange={(e) => setEditingMember({...editingMember, branch: e.target.value})}>
                     {branches.filter(b => b !== '전체').map(b => <option key={b} value={b} className="bg-[#1a1a2e]">{b}</option>)}
                   </select>
                 </div>
                 <div className="flex-[2]">
-                  <label className="text-[13px] text-blue-400 font-black ml-1 mb-1 block">성함</label>
-                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
+                  <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">성함</label>
+                  <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white font-bold outline-none text-sm focus:border-blue-500" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} />
                 </div>
               </div>
 
+              {/* 연락처 입력 섹션 (010 고정 및 2칸 분할) */}
               <div>
-                <label className="text-[13px] text-blue-400 font-black ml-1 mb-1 block">연락처 (010 고정)</label>
+                <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">연락처 (010)</label>
                 <div className="flex items-center gap-1">
                   <div className="w-14 bg-white/10 border border-white/5 rounded-xl py-2 text-center text-gray-400 font-black text-sm">010</div>
                   <span className="text-gray-600">-</span>
@@ -295,36 +297,39 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
+              {/* 차/비/출/가 통합 관리 (시인성 강화 버전) */}
               <div className="pt-1">
-                <label className="text-[13px] text-blue-400 font-black ml-1 mb-1 block">상태 통합 관리</label>
+                <label className="text-[14px] text-blue-400 font-black ml-1 mb-1 block">차/비/출/가 통합 관리</label>
                 <div className="grid grid-cols-4 gap-2">
-                  <button onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber)})} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5">
-                    <span className="text-[10px] text-emerald-400 font-black">차량</span>
-                    <span className={`text-lg font-black ${getCarColor(editingMember.carNumber)}`}>{editingMember.carNumber || '-'}</span>
+                  <button onClick={() => setEditingMember({...editingMember, carNumber: getNextCarNumber(editingMember.carNumber)})} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 active:bg-white/10 transition-colors">
+                    <span className="text-[11px] text-emerald-400 font-black mb-1">차량</span>
+                    <span className={`text-2xl font-black ${getCarColor(editingMember.carNumber)}`}>{editingMember.carNumber || '-'}</span>
                   </button>
                   <button onClick={() => setEditingMember({...editingMember, fee: !editingMember.fee})} className={`flex flex-col items-center justify-center p-2 rounded-xl border ${editingMember.fee ? 'bg-yellow-400/20 border-yellow-400/50' : 'bg-white/5 border-white/5'}`}>
-                    <span className="text-[10px] text-yellow-400 font-black">회비</span>
-                    <Check className={`w-5 h-5 ${editingMember.fee ? 'text-yellow-400' : 'text-gray-700'}`} />
+                    <span className="text-[11px] text-yellow-400 font-black mb-1">회비</span>
+                    <Check className={`w-6 h-6 ${editingMember.fee ? 'text-yellow-400' : 'text-gray-700'}`} />
                   </button>
                   <button onClick={() => setEditingMember({...editingMember, attendance: !editingMember.attendance})} className={`flex flex-col items-center justify-center p-2 rounded-xl border ${editingMember.attendance ? 'bg-green-500/20 border-green-500/50' : 'bg-white/5 border-white/5'}`}>
-                    <span className="text-[10px] text-green-500 font-black">출결</span>
-                    <Check className={`w-5 h-5 ${editingMember.attendance ? 'text-green-500' : 'text-gray-700'}`} />
+                    <span className="text-[11px] text-green-500 font-black mb-1">출결</span>
+                    <Check className={`w-6 h-6 ${editingMember.attendance ? 'text-green-500' : 'text-gray-700'}`} />
                   </button>
                   <button onClick={() => setEditingMember({...editingMember, joined: editingMember.joined?.includes('26') ? '' : '26'})} className={`flex flex-col items-center justify-center p-2 rounded-xl border ${editingMember.joined?.includes('26') ? 'bg-purple-400/20 border-purple-400/50' : 'bg-white/5 border-white/5'}`}>
-                    <span className="text-[10px] text-purple-400 font-black">26년</span>
-                    <Check className={`w-5 h-5 ${editingMember.joined?.includes('26') ? 'text-purple-400' : 'text-gray-700'}`} />
+                    <span className="text-[11px] text-purple-400 font-black mb-1">가입</span>
+                    <Check className={`w-6 h-6 ${editingMember.joined?.includes('26') ? 'text-purple-400' : 'text-gray-700'}`} />
                   </button>
                 </div>
               </div>
 
+              {/* 하단 제어 버튼 */}
               <div className="flex gap-2 pt-4">
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 bg-white/5 text-gray-400 rounded-xl font-black border border-white/5">취소</button>
-                <button onClick={handleModalSave} className="flex-[2] py-3.5 bg-blue-600 text-white rounded-xl font-black shadow-lg">정보 저장 완료</button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 bg-white/5 text-gray-400 rounded-xl font-black border border-white/5 active:scale-95 transition-all">취소</button>
+                <button onClick={handleModalSave} className="flex-[2] py-3.5 bg-blue-600 text-white rounded-xl font-black shadow-lg active:scale-95 transition-all">정보 저장 완료</button>
               </div>
             </div>
           </div>
         </div>
       )}
+
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
     </div>
   );
