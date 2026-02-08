@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Member } from '../../types';
 import MessageModal from './MessageModal'; 
 
-// [전역 변수] 최종 사용한 차량 번호를 컴포넌트 외부에서 영구 기억
+// [전역 변수] 최종 사용한 차량 번호를 컴포넌트 외부에서 영구 기억 (공백 포함)
 let GLOBAL_LAST_CAR_NUMBER = ''; 
 
 interface MemberViewProps {
@@ -49,7 +49,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     const sequence = ['', '1', '2', '3', '4', '5', '6'];
     const currentIndex = sequence.indexOf(current || '');
     const nextVal = sequence[(currentIndex + 1) % sequence.length];
-    GLOBAL_LAST_CAR_NUMBER = nextVal; // 클릭 즉시 전역 변수 업데이트
+    // 클릭 즉시 전역 변수 업데이트 (공백인 경우 공백 저장)
+    GLOBAL_LAST_CAR_NUMBER = nextVal; 
     return nextVal;
   };
 
@@ -118,6 +119,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
   const handleModalSave = () => {
     if (!editingMember) return;
+    // 저장 시 최종 확정된 차량 번호를 전역 변수에 기록
     GLOBAL_LAST_CAR_NUMBER = editingMember.carNumber || '';
     setMembers(prev => {
       const exists = prev.find(m => m.id === editingMember.id);
@@ -177,7 +179,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         </div>
       </div>
 
-      {/* 회원 목록 테이블: 글씨 크기 text-[12px] 원상복구 */}
+      {/* 회원 목록 테이블: text-[12px] 유지 */}
       <div className="flex-grow overflow-auto bg-[#1a1a2e] rounded border border-[#3a3a5e]">
         <table className="w-full text-left table-fixed">
           <thead className="sticky top-0 z-10 bg-[#2c2c2e] text-blue-400 font-black text-[12px] border-b border-[#3a3a5e]">
@@ -197,7 +199,8 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
           <tbody className="text-[12px] font-bold">
             {displayMembers.map((m, idx) => (
               <tr key={m.id} className={`border-b border-[#2c2c2e] hover:bg-white/5 cursor-pointer ${selectedIds.has(m.id) ? 'bg-blue-900/10' : ''}`} onClick={() => { 
-                setEditingMember({...m, carNumber: GLOBAL_LAST_CAR_NUMBER || m.carNumber}); // 수정 시에도 전역변수 우선 주입
+                // 수정 시에도 전역 변수의 현재 상태(공백 여부)를 즉시 주입하여 동기화
+                setEditingMember({...m, carNumber: GLOBAL_LAST_CAR_NUMBER}); 
                 setIsModalOpen(true); 
               }}>
                 <td className="p-0.5 text-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => { const n = new Set(selectedIds); n.has(m.id) ? n.delete(m.id) : n.add(m.id); setSelectedIds(n); }} /></td>
@@ -218,7 +221,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
 
       <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} targets={selectedIds.size > 0 ? members.filter(m => selectedIds.has(m.id)) : displayMembers} />
 
-      {/* 가입/수정 모달 (레이아웃 및 전역 변수 주입 유지) */}
+      {/* 가입/수정 모달 (레이아웃 및 전역 변수 동기화 유지) */}
       {isModalOpen && editingMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-2 text-white">
           <div className="w-full max-w-lg bg-[#1a1a2e] rounded-2xl p-6 border border-white/10 relative shadow-2xl">
@@ -253,7 +256,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
                 </div>
               </div>
 
-              {/* 차/비/출/가 (모달 내 큰 UI 유지) */}
+              {/* 차/비/출/가 (모달 내 큰 UI 및 공백 동기화) */}
               <div className="flex items-end justify-between p-4 bg-white/5 rounded-xl border border-white/5 gap-0.5">
                 <div className="flex flex-col items-center flex-1 border-r border-white/10 h-full justify-between">
                   <span className="text-[15px] text-blue-400 font-black mb-1">차량</span>
