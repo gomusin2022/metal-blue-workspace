@@ -130,7 +130,7 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
     link.href = url; link.download = `${memberTitle}_${format(new Date(), 'yyyyMMdd')}.db`; link.click();
   };
 
-  // --- [수정: 가입(joined) 데이터가 위로, 공백이 아래로] ---
+  // --- [수정: 가입소트 모바일 최적화 (숫자 가중치 방식)] ---
   const displayMembers = useMemo(() => {
     let filtered = selectedBranch === '전체' ? members : members.filter(m => m.branch === selectedBranch);
     return [...filtered].sort((a, b) => {
@@ -138,14 +138,20 @@ const MemberView: React.FC<MemberViewProps> = ({ members, setMembers, onHome }) 
         const valA = String(a[key as keyof Member] || '').trim();
         const valB = String(b[key as keyof Member] || '').trim();
 
-        // valA가 공백이고 valB가 값이 있으면: valA를 뒤로 (1)
-        if (valA === "" && valB !== "") return 1;
-        // valA에 값이 있고 valB가 공백이면: valA를 앞으로 (-1)
-        if (valA !== "" && valB === "") return -1;
+        // 모바일 브라우저의 localeCompare 편차를 막기 위해 숫자로 우선순위 명시
+        // 값이 있으면 0, 없으면 1 (숫자가 작을수록 위로)
+        const weightA = valA === "" ? 1 : 0;
+        const weightB = valB === "" ? 1 : 0;
 
-        // 둘 다 값이 있거나 둘 다 공백일 때 일반 비교
-        const res = valA.localeCompare(valB, 'ko', { numeric: true });
-        if (res !== 0) return res;
+        if (weightA !== weightB) {
+          return weightA - weightB;
+        }
+
+        // 둘 다 값이 있는 경우에만 문자열 비교 수행
+        if (valA !== "") {
+          const res = valA.localeCompare(valB, 'ko', { numeric: true });
+          if (res !== 0) return res;
+        }
       }
       return 0;
     });
