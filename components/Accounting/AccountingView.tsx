@@ -1,10 +1,3 @@
-/**
- * AccountingView.tsx - UI 정밀 교정 및 기능 통합판
- * 1. 엑셀 버튼: 한글 제거, 아이콘만 표시하여 공간 확보 (지시사항)
- * 2. 작업 버튼: 추가/수정/복사/삭제 글씨가 가로로 유지되도록 너비 최적화
- * 3. 기능 보존: 시트 드롭다운, 시간 +1시간 추천, 시/분 선택 방식 100% 유지
- */
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, FileDown, FileUp, 
@@ -17,7 +10,6 @@ import { AccountingEntry, AccountingSheet } from '../../types';
 type WorkMode = '추가' | '수정' | '복사' | '삭제';
 
 const AccountingView: React.FC = () => {
-  // --- [상태 관리] ---
   const [sheets, setSheets] = useState<AccountingSheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string>('');
   const [workMode, setWorkMode] = useState<WorkMode>('추가');
@@ -34,7 +26,6 @@ const AccountingView: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 로컬스토리지 로드
   useEffect(() => {
     const saved = localStorage.getItem('metal_accounting_sheets');
     if (saved) {
@@ -48,14 +39,12 @@ const AccountingView: React.FC = () => {
     }
   }, []);
 
-  // 데이터 변경 시 자동 저장
   useEffect(() => {
     if (sheets.length > 0) localStorage.setItem('metal_accounting_sheets', JSON.stringify(sheets));
   }, [sheets]);
 
   const activeSheet = useMemo(() => sheets.find(s => s.id === activeSheetId), [sheets, activeSheetId]);
 
-  // 누계 및 정렬 엔진
   const sortedEntries = useMemo(() => {
     if (!activeSheet) return [];
     const sorted = [...activeSheet.entries].sort((a, b) => {
@@ -76,7 +65,6 @@ const AccountingView: React.FC = () => {
     return { totalInc, totalExp, balance: totalInc - totalExp };
   }, [sortedEntries]);
 
-  // --- [핸들러 로직] ---
   const handleAddSheet = () => {
     const name = window.prompt("새 장부 이름을 입력하세요", "");
     if (!name) return;
@@ -138,8 +126,13 @@ const AccountingView: React.FC = () => {
     setInItem(''); setInAmount('');
   };
 
+  // 1. 파일명을 반드시 묻도록 수정
   const exportToExcel = () => {
     if (!activeSheet || sortedEntries.length === 0) return;
+    const defaultFileName = `회계장부_${activeSheet.name}_${format(new Date(), 'yyyyMMdd')}`;
+    const customName = window.prompt("저장할 파일 이름을 입력하세요:", defaultFileName);
+    if (customName === null) return; // 취소 시 중단
+
     const wb = XLSX.utils.book_new();
     const data = sortedEntries.map(e => ({
       '날짜': e.date, '시간': `${String(e.hour).padStart(2,'0')}:${String(e.minute).padStart(2,'0')}`,
@@ -147,12 +140,14 @@ const AccountingView: React.FC = () => {
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, activeSheet.name);
-    XLSX.writeFile(wb, `회계장부_${activeSheet.name}_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+    XLSX.writeFile(wb, `${customName}.xlsx`);
   };
 
+  // 3. 업로드 시 덮어씌우기 경고 추가
   const importFromExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeSheet) return;
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -172,7 +167,13 @@ const AccountingView: React.FC = () => {
             balance: 0
           };
         });
-        setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, ...importedEntries] } : s));
+
+        // 덮어씌우기 경고 로직
+        if (window.confirm("기존 내용을 삭제하고 엑셀 파일 데이터로 덮어씌우시겠습니까? \n(취소하면 기존 데이터 뒤에 추가됩니다)")) {
+            setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: importedEntries } : s));
+        } else {
+            setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, ...importedEntries] } : s));
+        }
       } catch (err) { alert("엑셀 불러오기 오류"); }
     };
     reader.readAsBinaryString(file);
@@ -182,7 +183,7 @@ const AccountingView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans select-none">
       
-      {/* 1. 타이틀바 (대형 드롭다운) */}
+      {/* 1. 타이틀바 */}
       <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-4 h-16 shrink-0 relative">
         <div className="flex items-center gap-3 z-10">
           <button onClick={handleAddSheet} className="p-2.5 bg-blue-600 rounded-lg active:scale-95 text-white"><Plus className="w-6 h-6" /></button>
@@ -216,10 +217,8 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. 대시보드 및 컨트롤 (수정 사항 적용) */}
       <div className="flex flex-col bg-[#111] border-b border-[#222]">
         <div className="flex items-center justify-between p-3">
-          {/* 작업 버튼: 너비를 충분히 확보하여 글자가 세로로 되지 않게 수정 */}
           <div className="flex bg-[#1c1c1e] p-1.5 rounded-xl gap-2 border border-[#333] overflow-x-auto no-scrollbar">
             {(['추가', '수정', '복사', '삭제'] as WorkMode[]).map(m => (
               <button key={m} onClick={() => { setWorkMode(m); if(m==='추가') setEditingEntryId(null); }} 
@@ -228,7 +227,6 @@ const AccountingView: React.FC = () => {
               </button>
             ))}
           </div>
-          {/* 엑셀 버튼: 한글 지우고 아이콘만 남김 */}
           <div className="flex gap-2">
             <button onClick={() => fileInputRef.current?.click()} className="p-2.5 bg-indigo-600 rounded-lg text-white active:scale-95 shadow-md" title="불러오기"><FileUp className="w-6 h-6"/></button>
             <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls"/>
@@ -244,7 +242,6 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. 데이터 영역 (가독성 강화) */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
         <table className="hidden md:table w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 text-base font-black border-b-2 border-orange-900">
@@ -273,7 +270,6 @@ const AccountingView: React.FC = () => {
           </tbody>
         </table>
 
-        {/* 모바일 뷰 카드 */}
         <div className="md:hidden flex flex-col">
           {sortedEntries.map(e => (
             <div key={e.id} onClick={() => handleRowClick(e)} className={`p-4 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
@@ -294,7 +290,7 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. 입력 푸터 (드롭다운 방식) */}
+      {/* 4. 입력 푸터 (2. 한글 글씨 삭제 반영) */}
       <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-3">
           <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-black"/>
@@ -312,8 +308,9 @@ const AccountingView: React.FC = () => {
           <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역 입력" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-white font-black text-base"/>
           <div className="col-span-4 md:w-auto flex gap-3">
             <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className={`flex-grow md:w-48 bg-black border border-gray-700 p-2.5 rounded-lg text-right font-black text-xl ${inType === '수입' ? 'text-emerald-400' : 'text-rose-400'}`}/>
-            <button onClick={handleSaveEntry} className={`px-8 py-2.5 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded-lg active:scale-95 transition-all flex items-center gap-2 shadow-lg`}>
-              <Save className="w-6 h-6"/> <span>{workMode === '수정' ? '수정완료' : '저장'}</span>
+            {/* 하단 저장 버튼에서 한글 삭제하고 아이콘만 유지 */}
+            <button onClick={handleSaveEntry} className={`px-10 py-2.5 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded-lg active:scale-95 transition-all flex items-center justify-center shadow-lg min-w-[80px]`}>
+              <Check className="w-8 h-8"/>
             </button>
           </div>
         </div>
