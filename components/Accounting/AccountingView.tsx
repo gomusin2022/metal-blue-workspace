@@ -1,11 +1,3 @@
-/**
- * AccountingView.tsx - 타이틀바 레이아웃 전면 재배치
- * 1. 좌측 끝: 타이틀명 (장부 이름) 이동
- * 2. 우측 끝: 추가(+) / 삭제(Trash) 버튼 이동
- * 3. 추가 버튼 좌측: 시트 선택 드롭다운 밀착 배치
- * 4. 기능 유지: 엑셀 입출력, 시간 추천 로직, 드롭다운 입력 방식 100% 보존
- */
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, FileDown, FileUp, 
@@ -18,13 +10,10 @@ import { AccountingEntry, AccountingSheet } from '../../types';
 type WorkMode = '추가' | '수정' | '복사' | '삭제';
 
 const AccountingView: React.FC = () => {
-  // --- [상태 관리 및 데이터 로직 유지] ---
   const [sheets, setSheets] = useState<AccountingSheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string>('');
   const [workMode, setWorkMode] = useState<WorkMode>('추가');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [isRenaming, setIsRenaming] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
   
   const [inDate, setInDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [inHour, setInHour] = useState(new Date().getHours());
@@ -74,9 +63,8 @@ const AccountingView: React.FC = () => {
     return { totalInc, totalExp, balance: totalInc - totalExp };
   }, [sortedEntries]);
 
-  // --- [핸들러 로직 유지] ---
   const handleAddSheet = () => {
-    const name = window.prompt("새 장부 이름을 입력하세요", "");
+    const name = window.prompt("새로운 시트 이름을 입력하세요", "");
     if (!name) return;
     const newSheet: AccountingSheet = { id: crypto.randomUUID(), name, entries: [] };
     setSheets([...sheets, newSheet]);
@@ -84,18 +72,12 @@ const AccountingView: React.FC = () => {
   };
 
   const handleDeleteSheet = () => {
-    if (sheets.length <= 1) return alert("최소 하나의 장부는 유지해야 합니다.");
-    if (window.confirm(`장부 [${activeSheet?.name}]를 삭제하시겠습니까?`)) {
+    if (sheets.length <= 1) return alert("최소 하나의 시트는 유지해야 합니다.");
+    if (window.confirm(`시트 [${activeSheet?.name}]를 삭제하시겠습니까?`)) {
       const filtered = sheets.filter(s => s.id !== activeSheetId);
       setSheets(filtered);
       setActiveSheetId(filtered[0].id);
     }
-  };
-
-  const commitRename = () => {
-    if (!renameValue.trim()) return setIsRenaming(null);
-    setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, name: renameValue } : s));
-    setIsRenaming(null);
   };
 
   const handleSaveEntry = () => {
@@ -125,9 +107,11 @@ const AccountingView: React.FC = () => {
 
   const exportToExcel = () => {
     if (!activeSheet || sortedEntries.length === 0) return;
+    // 2. 파일명 형식 지정: 회계장부_시트명_날짜
     const defaultFileName = `회계장부_${activeSheet.name}_${format(new Date(), 'yyyyMMdd')}`;
     const customName = window.prompt("저장할 파일 이름을 입력하세요:", defaultFileName);
     if (customName === null) return;
+
     const wb = XLSX.utils.book_new();
     const data = sortedEntries.map(e => ({
       '날짜': e.date, '시간': `${String(e.hour).padStart(2,'0')}:${String(e.minute).padStart(2,'0')}`,
@@ -187,89 +171,75 @@ const AccountingView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans select-none">
       
-      {/* 1. 타이틀바 (지시사항에 따른 순서 전면 재배치) */}
-      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-2 h-16 shrink-0 relative">
-        
-        {/* [좌측 끝] 타이틀명 이동 */}
-        <div className="flex-grow flex items-center justify-start pl-2">
-          {isRenaming === activeSheetId ? (
-            <div className="flex items-center bg-[#1a1a2e] border border-blue-500 rounded px-2 w-full max-w-[200px]">
-              <input autoFocus className="bg-transparent text-xl font-black text-white outline-none py-1 w-full" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
-              <button onClick={commitRename} className="text-emerald-400"><Check className="w-7 h-7"/></button>
-            </div>
-          ) : (
-            <h2 onClick={() => { setIsRenaming(activeSheetId); setRenameValue(activeSheet?.name || ''); }} 
-                className="text-2xl md:text-4xl font-black text-white tracking-tighter cursor-pointer hover:text-blue-400 truncate max-w-[180px] md:max-w-none">
-              {activeSheet?.name}
-            </h2>
-          )}
+      {/* 1. 타이틀바 (타이틀명 고정 및 시트선택 분리) */}
+      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-3 h-16 shrink-0 relative">
+        <div className="flex-grow flex items-center justify-start pl-1">
+          <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter">회계장부</h2>
         </div>
 
-        {/* [우측 영역] 드롭다운 + 추가/삭제 버튼 */}
-        <div className="flex items-center gap-1 z-10">
-          {/* 드롭다운: 추가버튼 바로 좌측 밀착 */}
+        <div className="flex items-center gap-1.5 z-10">
           <select 
             value={activeSheetId} 
             onChange={(e) => setActiveSheetId(e.target.value)}
-            className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-3 py-2 rounded-lg mr-1"
+            className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-4 py-2 rounded-lg"
           >
             {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
           </select>
 
-          {/* 추가/삭제 버튼: 우측 끝 이동 */}
-          <button onClick={handleAddSheet} className="p-2 bg-blue-600 rounded active:scale-95 text-white"><Plus className="w-6 h-6" /></button>
-          <button onClick={handleDeleteSheet} className="p-2 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
+          <button onClick={handleAddSheet} className="p-2.5 bg-blue-600 rounded active:scale-95 text-white shadow-lg"><Plus className="w-6 h-6" /></button>
+          <button onClick={handleDeleteSheet} className="p-2.5 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
         </div>
       </div>
 
       {/* 2. 대시보드 및 컨트롤 */}
       <div className="flex flex-col bg-[#111] border-b border-[#222]">
-        <div className="flex items-center justify-between p-2">
-          <div className="flex bg-[#1c1c1e] p-1 rounded-lg gap-1 border border-[#333]">
+        <div className="flex items-center justify-between p-2.5">
+          {/* 4. 작업 모드 버튼 글씨 키움 */}
+          <div className="flex bg-[#1c1c1e] p-1.5 rounded-xl gap-1.5 border border-[#333]">
             {(['추가', '수정', '복사', '삭제'] as WorkMode[]).map(m => (
               <button key={m} onClick={() => { setWorkMode(m); if(m==='추가') setEditingEntryId(null); }} 
-                      className={`px-4 py-1.5 rounded text-[12px] font-black transition-all whitespace-nowrap ${workMode === m ? 'bg-blue-600 text-white' : 'text-gray-500'}`}>{m}</button>
+                      className={`px-5 py-2.5 rounded-lg text-lg font-black transition-all whitespace-nowrap ${workMode === m ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-gray-500'}`}>{m}</button>
             ))}
           </div>
-          <div className="flex gap-1.5">
-            <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-indigo-600 rounded text-white active:scale-95 shadow-md"><FileUp className="w-6 h-6"/></button>
+          <div className="flex gap-2">
+            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 bg-indigo-600 rounded-lg text-white active:scale-95 shadow-md"><FileUp className="w-7 h-7"/></button>
             <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls"/>
-            <button onClick={exportToExcel} className="p-2 bg-emerald-600 rounded text-white active:scale-95 shadow-md"><FileDown className="w-6 h-6"/></button>
-            <button onClick={() => window.print()} className="p-2 bg-orange-600 rounded text-white active:scale-95 shadow-md"><Printer className="w-6 h-6"/></button>
+            <button onClick={exportToExcel} className="p-2.5 bg-emerald-600 rounded-lg text-white active:scale-95 shadow-md"><FileDown className="w-7 h-7"/></button>
+            <button onClick={() => window.print()} className="p-2.5 bg-orange-600 rounded-lg text-white active:scale-95 shadow-md"><Printer className="w-7 h-7"/></button>
           </div>
         </div>
 
-        <div className="flex items-center justify-around py-3 bg-black/40 border-t border-[#222]">
-          <div className="text-center"><p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">총수입</p><p className="text-[16px] md:text-2xl font-black text-emerald-400">+ {summary.totalInc.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">총지출</p><p className="text-[16px] md:text-2xl font-black text-rose-500">- {summary.totalExp.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">현재누계</p><p className="text-[16px] md:text-2xl font-black text-cyan-400">= {summary.balance.toLocaleString()}</p></div>
+        {/* 3. 요약 영역 글씨 키움 */}
+        <div className="flex items-center justify-around py-5 bg-black/50 border-t border-[#222]">
+          <div className="text-center"><p className="text-[13px] text-blue-400 font-bold mb-1 tracking-widest">총수입</p><p className="text-2xl md:text-4xl font-black text-emerald-400">+ {summary.totalInc.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-[13px] text-blue-400 font-bold mb-1 tracking-widest">총지출</p><p className="text-2xl md:text-4xl font-black text-rose-500">- {summary.totalExp.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-[13px] text-cyan-400 font-bold mb-1 tracking-widest">현재누계</p><p className="text-2xl md:text-4xl font-black text-cyan-400">= {summary.balance.toLocaleString()}</p></div>
         </div>
       </div>
 
-      {/* 3. 데이터 영역 */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
         <table className="hidden md:table w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 font-black border-b-2 border-orange-900">
             <tr>
-              <th className="p-3 border border-gray-800 w-36">날짜</th>
-              <th className="p-3 border border-gray-800 w-28">시간</th>
-              <th className="p-3 border border-gray-800 w-24">구분</th>
-              <th className="p-3 border border-gray-800 text-left pl-8">수입/지출 내역</th>
-              <th className="p-3 border border-gray-800 text-right">수입금액</th>
-              <th className="p-3 border border-gray-800 text-right">지출금액</th>
-              <th className="p-3 border border-gray-800 text-right">누계</th>
+              <th className="p-4 border border-gray-800 w-36 text-lg">날짜</th>
+              <th className="p-4 border border-gray-800 w-28 text-lg">시간</th>
+              <th className="p-4 border border-gray-800 w-24 text-lg">구분</th>
+              <th className="p-4 border border-gray-800 text-left pl-8 text-lg">내역</th>
+              <th className="p-4 border border-gray-800 text-right text-lg">수입</th>
+              <th className="p-4 border border-gray-800 text-right text-lg">지출</th>
+              <th className="p-4 border border-gray-800 text-right text-lg">누계</th>
             </tr>
           </thead>
           <tbody>
             {sortedEntries.map(e => (
               <tr key={e.id} onClick={() => handleRowClick(e)} className={`cursor-pointer border-b border-gray-900 transition-colors ${editingEntryId === e.id ? 'bg-blue-900/40' : 'hover:bg-[#1a1a2e]'}`}>
-                <td className="p-3 text-center text-blue-100 font-bold text-[17px]">{e.date}</td>
-                <td className="p-3 text-center text-cyan-400 font-black text-[18px] font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
-                <td className={`p-3 text-center font-black ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
-                <td className="p-3 font-black text-yellow-400 text-[18px] text-left pl-8 truncate">{e.item}</td>
-                <td className="p-3 text-right text-emerald-300 font-black text-[19px]">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-rose-300 font-black text-[19px]">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-cyan-300 font-black text-[20px]">{e.balance.toLocaleString()}</td>
+                <td className="p-4 text-center text-blue-100 font-bold text-lg">{e.date}</td>
+                <td className="p-4 text-center text-cyan-400 font-black text-xl font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
+                <td className={`p-4 text-center font-black text-lg ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
+                <td className="p-4 font-black text-yellow-400 text-xl text-left pl-8 truncate">{e.item}</td>
+                <td className="p-4 text-right text-emerald-300 font-black text-xl">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
+                <td className="p-4 text-right text-rose-300 font-black text-xl">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
+                <td className="p-4 text-right text-cyan-300 font-black text-2xl">{e.balance.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
@@ -278,18 +248,18 @@ const AccountingView: React.FC = () => {
         {/* 모바일 뷰 카드 */}
         <div className="md:hidden flex flex-col">
           {sortedEntries.map(e => (
-            <div key={e.id} onClick={() => handleRowClick(e)} className={`p-4 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
-              <div className="flex flex-col gap-1 shrink-0">
-                <span className="text-[14px] text-blue-100 font-bold">{e.date.slice(5)} <span className="text-cyan-400 ml-1 font-black">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</span></span>
-                <span className={`text-[12px] font-black uppercase ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</span>
+            <div key={e.id} onClick={() => handleRowClick(e)} className={`p-5 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <span className="text-[15px] text-blue-100 font-bold">{e.date.slice(5)} <span className="text-cyan-400 ml-1 font-black">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</span></span>
+                <span className={`text-[13px] font-black uppercase ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</span>
               </div>
-              <div className="flex-grow px-4 overflow-hidden text-left">
-                <p className="text-[18px] font-black text-yellow-400 truncate">{e.item}</p>
-                <p className={`text-[16px] font-black ${e.type === '수입' ? 'text-emerald-300' : 'text-rose-300'}`}>{(e.incomeAmount || e.expenseAmount).toLocaleString()}</p>
+              <div className="flex-grow px-5 overflow-hidden text-left">
+                <p className="text-xl font-black text-yellow-400 truncate">{e.item}</p>
+                <p className={`text-lg font-black ${e.type === '수입' ? 'text-emerald-300' : 'text-rose-300'}`}>{(e.incomeAmount || e.expenseAmount).toLocaleString()}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-[10px] text-cyan-600 font-bold uppercase tracking-tighter">누계</p>
-                <p className="text-[19px] font-black text-cyan-300">{e.balance.toLocaleString()}</p>
+                <p className="text-[11px] text-cyan-600 font-bold uppercase">누계</p>
+                <p className="text-2xl font-black text-cyan-300">{e.balance.toLocaleString()}</p>
               </div>
             </div>
           ))}
@@ -297,25 +267,25 @@ const AccountingView: React.FC = () => {
       </div>
 
       {/* 4. 입력 푸터 */}
-      <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
+      <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-4 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-3">
-          <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded text-sm text-white font-black"/>
-          <div className="col-span-2 md:w-36 flex gap-1">
-            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded text-cyan-400 font-black text-xl text-center appearance-none">
+          <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-3 rounded-lg text-base text-white font-black"/>
+          <div className="col-span-2 md:w-40 flex gap-1.5">
+            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-3 rounded-lg text-cyan-400 font-black text-2xl text-center appearance-none">
               {Array.from({length: 24}).map((_, i) => <option key={i} value={i}>{String(i).padStart(2,'0')}시</option>)}
             </select>
-            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded text-cyan-400 font-black text-xl text-center appearance-none">
+            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-3 rounded-lg text-cyan-400 font-black text-2xl text-center appearance-none">
               {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m}>{String(m).padStart(2,'0')}분</option>)}
             </select>
           </div>
-          <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-2.5 rounded text-yellow-500 font-black text-sm">
+          <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-3 rounded-lg text-yellow-500 font-black text-base">
             <option value="수입">수입</option><option value="지출">지출</option>
           </select>
-          <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-2.5 rounded text-white font-black text-base"/>
+          <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-3 rounded-lg text-white font-black text-lg"/>
           <div className="col-span-4 md:w-auto flex gap-3">
-            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className={`flex-grow md:w-48 bg-black border border-gray-700 p-2.5 rounded text-right font-black text-xl ${inType === '수입' ? 'text-emerald-400' : 'text-rose-400'}`}/>
-            <button onClick={handleSaveEntry} className={`px-10 py-2.5 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded active:scale-95 transition-all flex items-center justify-center shadow-lg min-w-[80px]`}>
-              <Check className="w-8 h-8"/>
+            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className={`flex-grow md:w-56 bg-black border border-gray-700 p-3 rounded-lg text-right font-black text-2xl ${inType === '수입' ? 'text-emerald-400' : 'text-rose-400'}`}/>
+            <button onClick={handleSaveEntry} className={`px-12 py-3 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded-lg active:scale-95 transition-all flex items-center justify-center shadow-lg min-w-[100px]`}>
+              <Check className="w-10 h-10"/>
             </button>
           </div>
         </div>
