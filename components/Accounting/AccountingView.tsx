@@ -219,7 +219,6 @@ const AccountingView: React.FC = () => {
           </div>
         </div>
 
-        {/* 요약 (2. 한글 글씨 키움) */}
         <div className="flex items-center justify-around py-3 bg-black/50 border-t border-[#222]">
           <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총수입</p><p className="text-base md:text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
           <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총지출</p><p className="text-base md:text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
@@ -227,7 +226,7 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. 데이터 테이블 (2. 헤더의 누계 한글 키움) */}
+      {/* 3. 데이터 테이블 (1. 헤더 복구 완료) */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
         <table className="hidden md:table w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 font-black border-b border-orange-900">
@@ -238,7 +237,7 @@ const AccountingView: React.FC = () => {
               <th className="p-3 border border-gray-800 text-left pl-6 text-xs">내역</th>
               <th className="p-3 border border-gray-800 text-right text-xs pr-4">수입</th>
               <th className="p-3 border border-gray-800 text-right text-xs pr-4">지출</th>
-              <th className="p-3 border border-gray-800 text-right text-sm pr-4 font-black">누계</th>
+              <th className="p-3 border border-gray-800 text-right text-sm pr-4 font-black tracking-widest">누계</th>
             </tr>
           </thead>
           <tbody>
@@ -256,7 +255,7 @@ const AccountingView: React.FC = () => {
           </tbody>
         </table>
 
-        {/* 모바일 뷰 (1. 숫자 색상 및 크기 복구) */}
+        {/* 모바일 뷰 */}
         <div className="md:hidden flex flex-col">
           {sortedEntries.map(e => (
             <div key={e.id} onClick={() => handleRowClick(e)} className={`p-3 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
@@ -266,13 +265,13 @@ const AccountingView: React.FC = () => {
               </div>
               <div className="flex-grow px-3 overflow-hidden text-left">
                 <p className="text-base font-black text-yellow-400 truncate">{e.item}</p>
-                {/* 1. 원래데로 복구: 회색글씨 제거, 금액 시인성 확보 */}
                 <p className={`text-[15px] font-black ${e.type === '수입' ? 'text-emerald-300' : 'text-rose-300'}`}>
                   {(e.incomeAmount || e.expenseAmount).toLocaleString()}
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-[10px] text-cyan-600 font-black uppercase">누계</p>
+                {/* 2. 항목 항목 누계 글씨 강조 */}
+                <p className="text-[13px] text-cyan-600 font-black uppercase tracking-widest">누계</p>
                 <p className="text-[17px] font-black text-cyan-300 tracking-tighter">{e.balance.toLocaleString()}</p>
               </div>
             </div>
@@ -286,22 +285,10 @@ const AccountingView: React.FC = () => {
           <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-bold"/>
           
           <div className="col-span-2 md:w-36 flex gap-1 relative group">
-            <select 
-              value={inHour} 
-              onChange={e => setInHour(Number(e.target.value))} 
-              className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer"
-            >
-              {Array.from({length: 24}).map((_, i) => (
-                <option key={i} value={i} className="bg-[#111] text-white">
-                  {String(i).padStart(2,'0')}시
-                </option>
-              ))}
+            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
+              {Array.from({length: 24}).map((_, i) => (<option key={i} value={i} className="bg-[#111] text-white">{String(i).padStart(2,'0')}시</option>))}
             </select>
-            <select 
-              value={inMin} 
-              onChange={e => setInMin(Number(e.target.value))} 
-              className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer"
-            >
+            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
               {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m} className="bg-[#111] text-white">{String(m).padStart(2,'0')}분</option>)}
             </select>
           </div>
