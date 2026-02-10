@@ -144,19 +144,33 @@ const AccountingView: React.FC = () => {
         const wb = XLSX.read(bstr, { type: 'binary' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data: any[] = XLSX.utils.sheet_to_json(ws);
-        const imported = data.map(row => ({
-          id: crypto.randomUUID(), date: String(row['날짜'] || inDate),
-          hour: parseInt(String(row['시간'] || '0').split(':')[0]), 
-          minute: parseInt(String(row['시간'] || '0').split(':')[1] || '0'),
-          type: row['구분'] || '수입', item: String(row['내역'] || ''),
-          incomeAmount: Number(row['수입금액'] || 0), expenseAmount: Number(row['지출금액'] || 0), balance: 0
-        }));
+        
+        const imported = data.map(row => {
+          // 한글 필드명 강제 매핑 로직 추가
+          const itemValue = String(row['내역'] || row['수입/지출 내역'] || row['item'] || '');
+          const incomeValue = Number(row['수입금액'] || row['수입'] || row['incomeAmount'] || 0);
+          const expenseValue = Number(row['지출금액'] || row['지출'] || row['expenseAmount'] || 0);
+          const typeValue = incomeValue > 0 ? '수입' : '지출';
+
+          return {
+            id: crypto.randomUUID(), 
+            date: String(row['날짜'] || inDate),
+            hour: row['시간'] ? parseInt(String(row['시간']).split(':')[0]) : inHour, 
+            minute: row['시간'] ? (parseInt(String(row['시간']).split(':')[1]) || 0) : 0,
+            type: typeValue, 
+            item: itemValue,
+            incomeAmount: incomeValue, 
+            expenseAmount: expenseValue, 
+            balance: 0
+          };
+        });
+
         if (window.confirm("기존 내용을 삭제하고 덮어씌우시겠습니까?")) {
           setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: imported } : s));
         } else {
           setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, ...imported] } : s));
         }
-      } catch (err) { alert("오류"); }
+      } catch (err) { alert("파일 형식 오류"); }
     };
     reader.readAsBinaryString(file);
     e.target.value = '';
@@ -213,7 +227,7 @@ const AccountingView: React.FC = () => {
           </div>
           <div className="flex gap-1.5">
             <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-indigo-600 rounded active:scale-95 shadow-md"><FileUp className="w-5 h-5"/></button>
-            <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls"/>
+            <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls,.csv"/>
             <button onClick={exportToExcel} className="p-2 bg-emerald-600 rounded active:scale-95 shadow-md"><FileDown className="w-5 h-5"/></button>
             <button onClick={() => window.print()} className="p-2 bg-orange-600 rounded active:scale-95 shadow-md"><Printer className="w-5 h-5"/></button>
           </div>
@@ -228,7 +242,6 @@ const AccountingView: React.FC = () => {
 
       {/* 3. 데이터 테이블 */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
-        {/* [PC 버전] - 테이블 헤더 복구 및 내역(item) 직접 매핑 */}
         <table className="hidden md:table w-full border-collapse table-fixed">
           <thead className="sticky top-0 z-10 bg-[#000] text-[#D2691E] font-black border-b border-[#1a1a2e]">
             <tr>
@@ -244,20 +257,20 @@ const AccountingView: React.FC = () => {
           <tbody>
             {sortedEntries.map(e => (
               <tr key={e.id} onClick={() => handleRowClick(e)} className={`cursor-pointer border-b border-gray-900 transition-colors ${editingEntryId === e.id ? 'bg-blue-900/40' : 'hover:bg-[#1a1a2e]'}`}>
-                <td className="p-3 text-center text-blue-100 font-bold text-base truncate">{e.date}</td>
-                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono truncate">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
-                <td className={`p-3 text-center font-black truncate ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
-                {/* 1. PC 내역(item) 출력 정상화 */}
-                <td className="p-3 font-black text-yellow-400 text-base text-left pl-6 break-words overflow-hidden">{e.item}</td>
-                <td className="p-3 text-right text-emerald-300 font-black pr-4 truncate">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-rose-300 font-black pr-4 truncate">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4 truncate">{e.balance.toLocaleString()}</td>
+                <td className="p-3 text-center text-blue-100 font-bold text-base">{e.date}</td>
+                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
+                <td className={`p-3 text-center font-black ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
+                {/* 1. PC 한글 내역 출력 정상화 (숨김 속성 제거) */}
+                <td className="p-3 font-black text-yellow-400 text-base text-left pl-6 overflow-hidden">{e.item || "-"}</td>
+                <td className="p-3 text-right text-emerald-300 font-black pr-4">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-rose-300 font-black pr-4">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4">{e.balance.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* [모바일 버전] - 헤더 좌측 정렬 고수 */}
+        {/* 모바일 버전 */}
         <div className="md:hidden flex flex-col">
           <div className="sticky top-0 z-10 bg-[#000] text-[#D2691E] font-black border-b border-[#1a1a2e] flex px-3 py-2 text-[11px]">
             <div className="w-16 shrink-0 text-left pl-1">날짜</div>
@@ -272,7 +285,7 @@ const AccountingView: React.FC = () => {
                 <span className={`text-[11px] font-black uppercase ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</span>
               </div>
               <div className="flex-grow px-1 overflow-hidden text-left">
-                <p className="text-base font-black text-yellow-400 truncate">{e.item}</p>
+                <p className="text-base font-black text-yellow-400 truncate">{e.item || "-"}</p>
                 <p className={`text-[15px] font-black ${e.type === '수입' ? 'text-emerald-300' : 'text-rose-300'}`}>
                   {e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : e.expenseAmount.toLocaleString()}
                 </p>
@@ -291,8 +304,8 @@ const AccountingView: React.FC = () => {
         <div className="grid grid-cols-4 md:flex items-center gap-2">
           <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-bold"/>
           
-          {/* 2. 시간 입력 2열 UI 고정 (사장님 지시사항) */}
-          <div className="col-span-2 md:w-40 grid grid-cols-2 gap-1 bg-transparent">
+          {/* 2. 시간 입력 2열 UI 독립 고정 */}
+          <div className="col-span-2 md:w-40 grid grid-cols-2 gap-1">
             <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="w-full bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
               {Array.from({length: 24}).map((_, i) => (<option key={i} value={i} className="bg-[#111] text-white">{String(i).padStart(2,'0')}시</option>))}
             </select>
