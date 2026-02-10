@@ -1,9 +1,9 @@
 /**
- * AccountingView.tsx - 타이틀바 밀착 최적화 및 레이아웃 교정판
- * 1. 좌측 버튼: 최대한 좌측으로 밀착 및 간격 최소화 (지시사항)
- * 2. 우측 드롭다운: 아이콘 삭제, 시트명만 표시하여 공간 확보 (지시사항)
- * 3. 중앙 타이틀: 버튼 밀착을 통해 수정 가능한 가용 면적 최대화
- * 4. 기능 유지: 엑셀 입출력, 시간 +1시간 추천, 시/분 드롭다운 100% 보존
+ * AccountingView.tsx - 타이틀바 레이아웃 전면 재배치
+ * 1. 좌측 끝: 타이틀명 (장부 이름) 이동
+ * 2. 우측 끝: 추가(+) / 삭제(Trash) 버튼 이동
+ * 3. 추가 버튼 좌측: 시트 선택 드롭다운 밀착 배치
+ * 4. 기능 유지: 엑셀 입출력, 시간 추천 로직, 드롭다운 입력 방식 100% 보존
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -187,19 +187,14 @@ const AccountingView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans select-none">
       
-      {/* 1. 타이틀바 (밀착 최적화 반영) */}
-      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-1 h-16 shrink-0 relative">
-        {/* 좌측 버튼 밀착 및 간격 삭제 */}
-        <div className="flex items-center z-10">
-          <button onClick={handleAddSheet} className="p-2 bg-blue-600 rounded active:scale-95 text-white"><Plus className="w-6 h-6" /></button>
-          <button onClick={handleDeleteSheet} className="p-2 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
-        </div>
-
-        {/* 중앙 타이틀 (가용 면적 최대화) */}
-        <div className="flex-grow flex items-center justify-center px-1">
+      {/* 1. 타이틀바 (지시사항에 따른 순서 전면 재배치) */}
+      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-2 h-16 shrink-0 relative">
+        
+        {/* [좌측 끝] 타이틀명 이동 */}
+        <div className="flex-grow flex items-center justify-start pl-2">
           {isRenaming === activeSheetId ? (
             <div className="flex items-center bg-[#1a1a2e] border border-blue-500 rounded px-2 w-full max-w-[200px]">
-              <input autoFocus className="bg-transparent text-xl font-black text-white outline-none py-1 w-full text-center" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
+              <input autoFocus className="bg-transparent text-xl font-black text-white outline-none py-1 w-full" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
               <button onClick={commitRename} className="text-emerald-400"><Check className="w-7 h-7"/></button>
             </div>
           ) : (
@@ -210,15 +205,20 @@ const AccountingView: React.FC = () => {
           )}
         </div>
 
-        {/* 우측 드롭다운: 아이콘 삭제, 시트명만 표시 */}
-        <div className="z-10 relative">
+        {/* [우측 영역] 드롭다운 + 추가/삭제 버튼 */}
+        <div className="flex items-center gap-1 z-10">
+          {/* 드롭다운: 추가버튼 바로 좌측 밀착 */}
           <select 
             value={activeSheetId} 
             onChange={(e) => setActiveSheetId(e.target.value)}
-            className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-3 py-2 rounded-lg"
+            className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-3 py-2 rounded-lg mr-1"
           >
             {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
           </select>
+
+          {/* 추가/삭제 버튼: 우측 끝 이동 */}
+          <button onClick={handleAddSheet} className="p-2 bg-blue-600 rounded active:scale-95 text-white"><Plus className="w-6 h-6" /></button>
+          <button onClick={handleDeleteSheet} className="p-2 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ const AccountingView: React.FC = () => {
             {sortedEntries.map(e => (
               <tr key={e.id} onClick={() => handleRowClick(e)} className={`cursor-pointer border-b border-gray-900 transition-colors ${editingEntryId === e.id ? 'bg-blue-900/40' : 'hover:bg-[#1a1a2e]'}`}>
                 <td className="p-3 text-center text-blue-100 font-bold text-[17px]">{e.date}</td>
-                <td className="p-3 text-center text-cyan-400 font-black text-[18px]">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
+                <td className="p-3 text-center text-cyan-400 font-black text-[18px] font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
                 <td className={`p-3 text-center font-black ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
                 <td className="p-3 font-black text-yellow-400 text-[18px] text-left pl-8 truncate">{e.item}</td>
                 <td className="p-3 text-right text-emerald-300 font-black text-[19px]">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
@@ -275,6 +275,7 @@ const AccountingView: React.FC = () => {
           </tbody>
         </table>
 
+        {/* 모바일 뷰 카드 */}
         <div className="md:hidden flex flex-col">
           {sortedEntries.map(e => (
             <div key={e.id} onClick={() => handleRowClick(e)} className={`p-4 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
