@@ -226,9 +226,9 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. 데이터 테이블 (데이터 유실 방지 및 칼각 정렬 반영) */}
+      {/* 3. 데이터 테이블 */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
-        {/* [PC 버전] - 이미지와 동일한 100% 정렬 복구 */}
+        {/* PC 버전 - 정렬 복구 및 내역 출력 */}
         <table className="hidden md:table w-full border-collapse table-fixed">
           <thead className="sticky top-0 z-10 bg-[#000] text-[#D2691E] font-black border-b border-[#1a1a2e]">
             <tr>
@@ -244,23 +244,23 @@ const AccountingView: React.FC = () => {
           <tbody>
             {sortedEntries.map(e => (
               <tr key={e.id} onClick={() => handleRowClick(e)} className={`cursor-pointer border-b border-gray-900 transition-colors ${editingEntryId === e.id ? 'bg-blue-900/40' : 'hover:bg-[#1a1a2e]'}`}>
-                <td className="p-3 text-center text-blue-100 font-bold text-base truncate">{e.date}</td>
-                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono truncate">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
-                <td className={`p-3 text-center font-black truncate ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
+                <td className="p-3 text-center text-blue-100 font-bold text-base">{e.date}</td>
+                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
+                <td className={`p-3 text-center font-black ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
                 <td className="p-3 font-black text-yellow-400 text-base text-left pl-6 truncate">{e.item}</td>
-                <td className="p-3 text-right text-emerald-300 font-black pr-4 truncate">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-rose-300 font-black pr-4 truncate">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4 truncate">{e.balance.toLocaleString()}</td>
+                <td className="p-3 text-right text-emerald-300 font-black pr-4">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-rose-300 font-black pr-4">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4">{e.balance.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* [모바일 버전] - 헤더 좌측 정렬 반영 */}
+        {/* 모바일 버전 - 헤더 좌측 정렬 반영 */}
         <div className="md:hidden flex flex-col">
           <div className="sticky top-0 z-10 bg-[#000] text-[#D2691E] font-black border-b border-[#1a1a2e] flex px-3 py-2 text-[11px]">
-            <div className="w-16 shrink-0 text-left pl-1">날짜</div>
-            <div className="w-12 shrink-0 text-left pl-1">시간</div>
+            <div className="w-16 shrink-0 text-left">날짜</div>
+            <div className="w-12 shrink-0 text-left">시간</div>
             <div className="flex-grow px-2 text-center">수입지출 항목</div>
             <div className="w-20 shrink-0 text-right pr-2">누계</div>
           </div>
@@ -285,18 +285,21 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. 입력 푸터 (기존 UI/기능 완벽 유지) */}
+      {/* 4. 입력 푸터 (시간 입력 2열 드롭다운 완벽 보구) */}
       <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-2">
           <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-bold"/>
-          <div className="col-span-2 md:w-36 flex gap-1">
-            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
+          
+          {/* 시간 입력 2열 드롭다운 (사장님 지시사항) */}
+          <div className="col-span-2 md:w-36 grid grid-cols-2 gap-1">
+            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
               {Array.from({length: 24}).map((_, i) => (<option key={i} value={i} className="bg-[#111] text-white">{String(i).padStart(2,'0')}시</option>))}
             </select>
-            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
+            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
               {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m} className="bg-[#111] text-white">{String(m).padStart(2,'0')}분</option>)}
             </select>
           </div>
+
           <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-2 rounded-lg text-yellow-500 font-black text-sm">
             <option value="수입">수입</option><option value="지출">지출</option>
           </select>
