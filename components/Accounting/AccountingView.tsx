@@ -1,7 +1,15 @@
+/**
+ * AccountingView.tsx - 타이틀바 밀착 최적화 및 레이아웃 교정판
+ * 1. 좌측 버튼: 최대한 좌측으로 밀착 및 간격 최소화 (지시사항)
+ * 2. 우측 드롭다운: 아이콘 삭제, 시트명만 표시하여 공간 확보 (지시사항)
+ * 3. 중앙 타이틀: 버튼 밀착을 통해 수정 가능한 가용 면적 최대화
+ * 4. 기능 유지: 엑셀 입출력, 시간 +1시간 추천, 시/분 드롭다운 100% 보존
+ */
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, FileDown, FileUp, 
-  Printer, X, Wallet, Check, ChevronDown, ListFilter 
+  Printer, X, Wallet, Check, ChevronDown 
 } from 'lucide-react';
 import { format, addHours, parse } from 'date-fns';
 import * as XLSX from 'xlsx';
@@ -10,6 +18,7 @@ import { AccountingEntry, AccountingSheet } from '../../types';
 type WorkMode = '추가' | '수정' | '복사' | '삭제';
 
 const AccountingView: React.FC = () => {
+  // --- [상태 관리 및 데이터 로직 유지] ---
   const [sheets, setSheets] = useState<AccountingSheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string>('');
   const [workMode, setWorkMode] = useState<WorkMode>('추가');
@@ -65,6 +74,7 @@ const AccountingView: React.FC = () => {
     return { totalInc, totalExp, balance: totalInc - totalExp };
   }, [sortedEntries]);
 
+  // --- [핸들러 로직 유지] ---
   const handleAddSheet = () => {
     const name = window.prompt("새 장부 이름을 입력하세요", "");
     if (!name) return;
@@ -86,19 +96,6 @@ const AccountingView: React.FC = () => {
     if (!renameValue.trim()) return setIsRenaming(null);
     setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, name: renameValue } : s));
     setIsRenaming(null);
-  };
-
-  const handleRowClick = (entry: AccountingEntry) => {
-    if (workMode === '삭제') {
-      if (window.confirm(`[${entry.item}] 내역을 삭제하시겠습니까?`)) {
-        setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: s.entries.filter(e => e.id !== entry.id) } : s));
-      }
-    } else if (workMode === '수정' || workMode === '복사') {
-      setInDate(entry.date); setInHour(entry.hour); setInMin(entry.minute);
-      setInType(entry.type); setInItem(entry.item);
-      setInAmount(entry.incomeAmount || entry.expenseAmount);
-      setEditingEntryId(workMode === '수정' ? entry.id : null);
-    }
   };
 
   const handleSaveEntry = () => {
@@ -126,13 +123,11 @@ const AccountingView: React.FC = () => {
     setInItem(''); setInAmount('');
   };
 
-  // 1. 파일명을 반드시 묻도록 수정
   const exportToExcel = () => {
     if (!activeSheet || sortedEntries.length === 0) return;
     const defaultFileName = `회계장부_${activeSheet.name}_${format(new Date(), 'yyyyMMdd')}`;
     const customName = window.prompt("저장할 파일 이름을 입력하세요:", defaultFileName);
-    if (customName === null) return; // 취소 시 중단
-
+    if (customName === null) return;
     const wb = XLSX.utils.book_new();
     const data = sortedEntries.map(e => ({
       '날짜': e.date, '시간': `${String(e.hour).padStart(2,'0')}:${String(e.minute).padStart(2,'0')}`,
@@ -143,11 +138,9 @@ const AccountingView: React.FC = () => {
     XLSX.writeFile(wb, `${customName}.xlsx`);
   };
 
-  // 3. 업로드 시 덮어씌우기 경고 추가
   const importFromExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeSheet) return;
-
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -167,9 +160,7 @@ const AccountingView: React.FC = () => {
             balance: 0
           };
         });
-
-        // 덮어씌우기 경고 로직
-        if (window.confirm("기존 내용을 삭제하고 엑셀 파일 데이터로 덮어씌우시겠습니까? \n(취소하면 기존 데이터 뒤에 추가됩니다)")) {
+        if (window.confirm("기존 내용을 삭제하고 덮어씌우시겠습니까?")) {
             setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: importedEntries } : s));
         } else {
             setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, ...importedEntries] } : s));
@@ -180,71 +171,85 @@ const AccountingView: React.FC = () => {
     e.target.value = '';
   };
 
+  const handleRowClick = (entry: AccountingEntry) => {
+    if (workMode === '삭제') {
+      if (window.confirm(`[${entry.item}] 내역을 삭제하시겠습니까?`)) {
+        setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: s.entries.filter(e => e.id !== entry.id) } : s));
+      }
+    } else if (workMode === '수정' || workMode === '복사') {
+      setInDate(entry.date); setInHour(entry.hour); setInMin(entry.minute);
+      setInType(entry.type); setInItem(entry.item);
+      setInAmount(entry.incomeAmount || entry.expenseAmount);
+      setEditingEntryId(workMode === '수정' ? entry.id : null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans select-none">
       
-      {/* 1. 타이틀바 */}
-      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-4 h-16 shrink-0 relative">
-        <div className="flex items-center gap-3 z-10">
-          <button onClick={handleAddSheet} className="p-2.5 bg-blue-600 rounded-lg active:scale-95 text-white"><Plus className="w-6 h-6" /></button>
-          <button onClick={handleDeleteSheet} className="p-2.5 bg-red-900/40 text-red-500 rounded-lg active:scale-95"><Trash2 className="w-6 h-6" /></button>
+      {/* 1. 타이틀바 (밀착 최적화 반영) */}
+      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-1 h-16 shrink-0 relative">
+        {/* 좌측 버튼 밀착 및 간격 삭제 */}
+        <div className="flex items-center z-10">
+          <button onClick={handleAddSheet} className="p-2 bg-blue-600 rounded active:scale-95 text-white"><Plus className="w-6 h-6" /></button>
+          <button onClick={handleDeleteSheet} className="p-2 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
         </div>
 
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="pointer-events-auto">
-            {isRenaming === activeSheetId ? (
-              <div className="flex items-center gap-1 bg-[#1a1a2e] border border-blue-500 rounded-lg px-3">
-                <input autoFocus className="bg-transparent text-2xl font-black text-white outline-none py-1 text-center" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
-                <button onClick={commitRename} className="text-emerald-400"><Check className="w-7 h-7"/></button>
-              </div>
-            ) : (
-              <h2 onClick={() => { setIsRenaming(activeSheetId); setRenameValue(activeSheet?.name || ''); }} 
-                  className="text-2xl md:text-4xl font-black text-white tracking-tighter cursor-pointer hover:text-blue-400">
-                {activeSheet?.name}
-              </h2>
-            )}
-          </div>
+        {/* 중앙 타이틀 (가용 면적 최대화) */}
+        <div className="flex-grow flex items-center justify-center px-1">
+          {isRenaming === activeSheetId ? (
+            <div className="flex items-center bg-[#1a1a2e] border border-blue-500 rounded px-2 w-full max-w-[200px]">
+              <input autoFocus className="bg-transparent text-xl font-black text-white outline-none py-1 w-full text-center" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
+              <button onClick={commitRename} className="text-emerald-400"><Check className="w-7 h-7"/></button>
+            </div>
+          ) : (
+            <h2 onClick={() => { setIsRenaming(activeSheetId); setRenameValue(activeSheet?.name || ''); }} 
+                className="text-2xl md:text-4xl font-black text-white tracking-tighter cursor-pointer hover:text-blue-400 truncate max-w-[180px] md:max-w-none">
+              {activeSheet?.name}
+            </h2>
+          )}
         </div>
 
-        <div className="ml-auto z-10 relative">
-          <div className="flex items-center gap-2 bg-[#1c1c1e] border border-[#333] px-4 py-2 rounded-xl text-blue-400">
-            <ListFilter className="w-5 h-5" />
-            <select value={activeSheetId} onChange={(e) => setActiveSheetId(e.target.value)} className="bg-transparent text-lg font-black outline-none cursor-pointer appearance-none pr-6">
-              {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
-            </select>
-            <ChevronDown className="w-5 h-5 absolute right-3 pointer-events-none" />
-          </div>
+        {/* 우측 드롭다운: 아이콘 삭제, 시트명만 표시 */}
+        <div className="z-10 relative">
+          <select 
+            value={activeSheetId} 
+            onChange={(e) => setActiveSheetId(e.target.value)}
+            className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-3 py-2 rounded-lg"
+          >
+            {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
+          </select>
         </div>
       </div>
 
+      {/* 2. 대시보드 및 컨트롤 */}
       <div className="flex flex-col bg-[#111] border-b border-[#222]">
-        <div className="flex items-center justify-between p-3">
-          <div className="flex bg-[#1c1c1e] p-1.5 rounded-xl gap-2 border border-[#333] overflow-x-auto no-scrollbar">
+        <div className="flex items-center justify-between p-2">
+          <div className="flex bg-[#1c1c1e] p-1 rounded-lg gap-1 border border-[#333]">
             {(['추가', '수정', '복사', '삭제'] as WorkMode[]).map(m => (
               <button key={m} onClick={() => { setWorkMode(m); if(m==='추가') setEditingEntryId(null); }} 
-                      className={`min-w-[50px] px-4 py-2 rounded-lg text-sm font-black transition-all whitespace-nowrap ${workMode === m ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-800'}`}>
-                {m}
-              </button>
+                      className={`px-4 py-1.5 rounded text-[12px] font-black transition-all whitespace-nowrap ${workMode === m ? 'bg-blue-600 text-white' : 'text-gray-500'}`}>{m}</button>
             ))}
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 bg-indigo-600 rounded-lg text-white active:scale-95 shadow-md" title="불러오기"><FileUp className="w-6 h-6"/></button>
+          <div className="flex gap-1.5">
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-indigo-600 rounded text-white active:scale-95 shadow-md"><FileUp className="w-6 h-6"/></button>
             <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls"/>
-            <button onClick={exportToExcel} className="p-2.5 bg-emerald-600 rounded-lg text-white active:scale-95 shadow-md" title="저장"><FileDown className="w-6 h-6"/></button>
-            <button onClick={() => window.print()} className="p-2.5 bg-orange-600 rounded-lg text-white active:scale-95 shadow-md" title="인쇄"><Printer className="w-6 h-6"/></button>
+            <button onClick={exportToExcel} className="p-2 bg-emerald-600 rounded text-white active:scale-95 shadow-md"><FileDown className="w-6 h-6"/></button>
+            <button onClick={() => window.print()} className="p-2 bg-orange-600 rounded text-white active:scale-95 shadow-md"><Printer className="w-6 h-6"/></button>
           </div>
         </div>
 
-        <div className="flex items-center justify-around py-4 bg-black/40 border-t border-[#222]">
-          <div className="text-center"><p className="text-[11px] text-blue-400 font-bold mb-1 uppercase tracking-widest">총수입</p><p className="text-xl md:text-3xl font-black text-emerald-400">+ {summary.totalInc.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-[11px] text-blue-400 font-bold mb-1 uppercase tracking-widest">총지출</p><p className="text-xl md:text-3xl font-black text-rose-500">- {summary.totalExp.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-[11px] text-cyan-400 font-bold mb-1 uppercase tracking-widest">현재누계</p><p className="text-xl md:text-3xl font-black text-cyan-400">= {summary.balance.toLocaleString()}</p></div>
+        <div className="flex items-center justify-around py-3 bg-black/40 border-t border-[#222]">
+          <div className="text-center"><p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">총수입</p><p className="text-[16px] md:text-2xl font-black text-emerald-400">+ {summary.totalInc.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">총지출</p><p className="text-[16px] md:text-2xl font-black text-rose-500">- {summary.totalExp.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">현재누계</p><p className="text-[16px] md:text-2xl font-black text-cyan-400">= {summary.balance.toLocaleString()}</p></div>
         </div>
       </div>
 
+      {/* 3. 데이터 영역 */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
         <table className="hidden md:table w-full border-collapse">
-          <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 text-base font-black border-b-2 border-orange-900">
+          <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 font-black border-b-2 border-orange-900">
             <tr>
               <th className="p-3 border border-gray-800 w-36">날짜</th>
               <th className="p-3 border border-gray-800 w-28">시간</th>
@@ -290,26 +295,25 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. 입력 푸터 (2. 한글 글씨 삭제 반영) */}
+      {/* 4. 입력 푸터 */}
       <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-3">
-          <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-black"/>
-          <div className="col-span-2 md:w-36 flex gap-1.5">
-            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-cyan-400 font-black text-xl text-center appearance-none">
+          <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded text-sm text-white font-black"/>
+          <div className="col-span-2 md:w-36 flex gap-1">
+            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded text-cyan-400 font-black text-xl text-center appearance-none">
               {Array.from({length: 24}).map((_, i) => <option key={i} value={i}>{String(i).padStart(2,'0')}시</option>)}
             </select>
-            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-cyan-400 font-black text-xl text-center appearance-none">
+            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded text-cyan-400 font-black text-xl text-center appearance-none">
               {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m}>{String(m).padStart(2,'0')}분</option>)}
             </select>
           </div>
-          <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-2.5 rounded-lg text-yellow-500 font-black text-sm">
+          <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-2.5 rounded text-yellow-500 font-black text-sm">
             <option value="수입">수입</option><option value="지출">지출</option>
           </select>
-          <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역 입력" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-white font-black text-base"/>
+          <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-2.5 rounded text-white font-black text-base"/>
           <div className="col-span-4 md:w-auto flex gap-3">
-            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className={`flex-grow md:w-48 bg-black border border-gray-700 p-2.5 rounded-lg text-right font-black text-xl ${inType === '수입' ? 'text-emerald-400' : 'text-rose-400'}`}/>
-            {/* 하단 저장 버튼에서 한글 삭제하고 아이콘만 유지 */}
-            <button onClick={handleSaveEntry} className={`px-10 py-2.5 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded-lg active:scale-95 transition-all flex items-center justify-center shadow-lg min-w-[80px]`}>
+            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className={`flex-grow md:w-48 bg-black border border-gray-700 p-2.5 rounded text-right font-black text-xl ${inType === '수입' ? 'text-emerald-400' : 'text-rose-400'}`}/>
+            <button onClick={handleSaveEntry} className={`px-10 py-2.5 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded active:scale-95 transition-all flex items-center justify-center shadow-lg min-w-[80px]`}>
               <Check className="w-8 h-8"/>
             </button>
           </div>
