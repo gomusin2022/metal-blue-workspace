@@ -10,11 +10,16 @@ import { AccountingEntry, AccountingSheet } from '../../types';
 type WorkMode = '추가' | '수정' | '복사' | '삭제';
 
 const AccountingView: React.FC = () => {
+  // --- [1. 상태 관리] ---
   const [sheets, setSheets] = useState<AccountingSheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string>('');
   const [workMode, setWorkMode] = useState<WorkMode>('추가');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   
+  // 시트 이름 수정을 위한 상태 (복구 완료)
+  const [isRenaming, setIsRenaming] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
   const [inDate, setInDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [inHour, setInHour] = useState(new Date().getHours());
   const [inMin, setInMin] = useState(0);
@@ -24,6 +29,7 @@ const AccountingView: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- [2. 데이터 로드 및 저장] ---
   useEffect(() => {
     const saved = localStorage.getItem('metal_accounting_sheets');
     if (saved) {
@@ -43,6 +49,7 @@ const AccountingView: React.FC = () => {
 
   const activeSheet = useMemo(() => sheets.find(s => s.id === activeSheetId), [sheets, activeSheetId]);
 
+  // --- [3. 계산 엔진] ---
   const sortedEntries = useMemo(() => {
     if (!activeSheet) return [];
     const sorted = [...activeSheet.entries].sort((a, b) => {
@@ -63,6 +70,7 @@ const AccountingView: React.FC = () => {
     return { totalInc, totalExp, balance: totalInc - totalExp };
   }, [sortedEntries]);
 
+  // --- [4. 핸들러: 시트 및 이름 관리] ---
   const handleAddSheet = () => {
     const name = window.prompt("새로운 시트 이름을 입력하세요", "");
     if (!name) return;
@@ -80,6 +88,13 @@ const AccountingView: React.FC = () => {
     }
   };
 
+  const commitRename = () => {
+    if (!renameValue.trim()) return setIsRenaming(null);
+    setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, name: renameValue } : s));
+    setIsRenaming(null);
+  };
+
+  // --- [5. 핸들러: 데이터 관리] ---
   const handleSaveEntry = () => {
     if (!inItem.trim() || !inAmount) return;
     const amt = Number(inAmount);
@@ -107,7 +122,6 @@ const AccountingView: React.FC = () => {
 
   const exportToExcel = () => {
     if (!activeSheet || sortedEntries.length === 0) return;
-    // 2. 파일명 형식 지정: 회계장부_시트명_날짜
     const defaultFileName = `회계장부_${activeSheet.name}_${format(new Date(), 'yyyyMMdd')}`;
     const customName = window.prompt("저장할 파일 이름을 입력하세요:", defaultFileName);
     if (customName === null) return;
@@ -171,30 +185,49 @@ const AccountingView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans select-none">
       
-      {/* 1. 타이틀바 (타이틀명 고정 및 시트선택 분리) */}
+      {/* 1. 타이틀바 (타이틀명 고정 및 시트관리 복구) */}
       <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-3 h-16 shrink-0 relative">
         <div className="flex-grow flex items-center justify-start pl-1">
           <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter">회계장부</h2>
         </div>
 
-        <div className="flex items-center gap-1.5 z-10">
-          <select 
-            value={activeSheetId} 
-            onChange={(e) => setActiveSheetId(e.target.value)}
-            className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-4 py-2 rounded-lg"
-          >
-            {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
-          </select>
+        <div className="flex items-center gap-1 z-10">
+          {/* 시트 이름 수정 기능 복구 */}
+          {isRenaming === activeSheetId ? (
+            <div className="flex items-center bg-[#1c1c1e] border border-blue-500 rounded px-2">
+              <input 
+                autoFocus 
+                className="bg-transparent text-lg font-bold text-white outline-none py-1 w-24 text-center"
+                value={renameValue}
+                onChange={e => setRenameValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && commitRename()}
+              />
+              <button onClick={commitRename} className="text-emerald-400 p-1"><Check className="w-5 h-5"/></button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <select 
+                value={activeSheetId} 
+                onChange={(e) => setActiveSheetId(e.target.value)}
+                className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-3 py-2 rounded-lg"
+              >
+                {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
+              </select>
+              <button onClick={() => {setIsRenaming(activeSheetId); setRenameValue(activeSheet?.name || '');}} className="p-2 text-gray-500 hover:text-blue-400">
+                <Edit2 className="w-5 h-5" />
+              </button>
+            </div>
+          )}
 
-          <button onClick={handleAddSheet} className="p-2.5 bg-blue-600 rounded active:scale-95 text-white shadow-lg"><Plus className="w-6 h-6" /></button>
-          <button onClick={handleDeleteSheet} className="p-2.5 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
+          <button onClick={handleAddSheet} className="p-2 bg-blue-600 rounded active:scale-95 text-white shadow-lg"><Plus className="w-6 h-6" /></button>
+          <button onClick={handleDeleteSheet} className="p-2 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
         </div>
       </div>
 
       {/* 2. 대시보드 및 컨트롤 */}
       <div className="flex flex-col bg-[#111] border-b border-[#222]">
         <div className="flex items-center justify-between p-2.5">
-          {/* 4. 작업 모드 버튼 글씨 키움 */}
+          {/* 작업 모드 버튼 글씨 키움 (지시사항 준수) */}
           <div className="flex bg-[#1c1c1e] p-1.5 rounded-xl gap-1.5 border border-[#333]">
             {(['추가', '수정', '복사', '삭제'] as WorkMode[]).map(m => (
               <button key={m} onClick={() => { setWorkMode(m); if(m==='추가') setEditingEntryId(null); }} 
@@ -202,14 +235,14 @@ const AccountingView: React.FC = () => {
             ))}
           </div>
           <div className="flex gap-2">
-            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 bg-indigo-600 rounded-lg text-white active:scale-95 shadow-md"><FileUp className="w-7 h-7"/></button>
+            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 bg-indigo-600 rounded-lg text-white active:scale-95 shadow-md" title="불러오기"><FileUp className="w-7 h-7"/></button>
             <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls"/>
-            <button onClick={exportToExcel} className="p-2.5 bg-emerald-600 rounded-lg text-white active:scale-95 shadow-md"><FileDown className="w-7 h-7"/></button>
-            <button onClick={() => window.print()} className="p-2.5 bg-orange-600 rounded-lg text-white active:scale-95 shadow-md"><Printer className="w-7 h-7"/></button>
+            <button onClick={exportToExcel} className="p-2.5 bg-emerald-600 rounded-lg text-white active:scale-95 shadow-md" title="저장"><FileDown className="w-7 h-7"/></button>
+            <button onClick={() => window.print()} className="p-2.5 bg-orange-600 rounded-lg text-white active:scale-95 shadow-md" title="인쇄"><Printer className="w-7 h-7"/></button>
           </div>
         </div>
 
-        {/* 3. 요약 영역 글씨 키움 */}
+        {/* 요약 영역 글씨 키움 (지시사항 준수) */}
         <div className="flex items-center justify-around py-5 bg-black/50 border-t border-[#222]">
           <div className="text-center"><p className="text-[13px] text-blue-400 font-bold mb-1 tracking-widest">총수입</p><p className="text-2xl md:text-4xl font-black text-emerald-400">+ {summary.totalInc.toLocaleString()}</p></div>
           <div className="text-center"><p className="text-[13px] text-blue-400 font-bold mb-1 tracking-widest">총지출</p><p className="text-2xl md:text-4xl font-black text-rose-500">- {summary.totalExp.toLocaleString()}</p></div>
@@ -221,13 +254,13 @@ const AccountingView: React.FC = () => {
         <table className="hidden md:table w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 font-black border-b-2 border-orange-900">
             <tr>
-              <th className="p-4 border border-gray-800 w-36 text-lg">날짜</th>
-              <th className="p-4 border border-gray-800 w-28 text-lg">시간</th>
-              <th className="p-4 border border-gray-800 w-24 text-lg">구분</th>
+              <th className="p-4 border border-gray-800 w-36 text-lg text-center">날짜</th>
+              <th className="p-4 border border-gray-800 w-28 text-lg text-center">시간</th>
+              <th className="p-4 border border-gray-800 w-24 text-lg text-center">구분</th>
               <th className="p-4 border border-gray-800 text-left pl-8 text-lg">내역</th>
-              <th className="p-4 border border-gray-800 text-right text-lg">수입</th>
-              <th className="p-4 border border-gray-800 text-right text-lg">지출</th>
-              <th className="p-4 border border-gray-800 text-right text-lg">누계</th>
+              <th className="p-4 border border-gray-800 text-right text-lg pr-4">수입</th>
+              <th className="p-4 border border-gray-800 text-right text-lg pr-4">지출</th>
+              <th className="p-4 border border-gray-800 text-right text-lg pr-4">누계</th>
             </tr>
           </thead>
           <tbody>
@@ -237,9 +270,9 @@ const AccountingView: React.FC = () => {
                 <td className="p-4 text-center text-cyan-400 font-black text-xl font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
                 <td className={`p-4 text-center font-black text-lg ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
                 <td className="p-4 font-black text-yellow-400 text-xl text-left pl-8 truncate">{e.item}</td>
-                <td className="p-4 text-right text-emerald-300 font-black text-xl">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
-                <td className="p-4 text-right text-rose-300 font-black text-xl">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
-                <td className="p-4 text-right text-cyan-300 font-black text-2xl">{e.balance.toLocaleString()}</td>
+                <td className="p-4 text-right text-emerald-300 font-black text-xl pr-4">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
+                <td className="p-4 text-right text-rose-300 font-black text-xl pr-4">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
+                <td className="p-4 text-right text-cyan-300 font-black text-2xl pr-4">{e.balance.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
