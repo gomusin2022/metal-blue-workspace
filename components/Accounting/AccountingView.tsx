@@ -1,10 +1,3 @@
-/**
- * AccountingView.tsx
- * 1. 작업 모드 유지: 저장 후에도 추가/수정/복사/삭제 모드가 변하지 않음
- * 2. 시간 입력 혁신: 시(24시간 2열 배치), 분(10분 단위) 드롭다운 적용
- * 3. UI 정돈: 한글(누계 등) 강조, 숫자 크기 정상화, 테이블 헤더 완벽 복구
- */
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, FileDown, FileUp, 
@@ -72,7 +65,6 @@ const AccountingView: React.FC = () => {
     return { totalInc, totalExp, balance: totalInc - totalExp };
   }, [sortedEntries]);
 
-  // --- [핸들러] ---
   const handleAddSheet = () => {
     const name = window.prompt("새 시트 이름", "");
     if (name) {
@@ -102,7 +94,6 @@ const AccountingView: React.FC = () => {
     if (!inItem.trim() || !inAmount) return;
     const amt = Number(inAmount);
     
-    // [수정] 모드일 때
     if (workMode === '수정' && editingEntryId) {
       setSheets(sheets.map(s => s.id === activeSheetId ? {
         ...s, entries: s.entries.map(e => e.id === editingEntryId ? {
@@ -110,10 +101,8 @@ const AccountingView: React.FC = () => {
           incomeAmount: inType === '수입' ? amt : 0, expenseAmount: inType === '지출' ? amt : 0
         } : e)
       } : s));
-      // 수정 완료 후에도 editingEntryId만 비우고 모드는 유지
       setEditingEntryId(null); 
     } else {
-      // [추가] 또는 [복사] 모드일 때
       const newEntry = {
         id: crypto.randomUUID(), date: inDate, hour: inHour, minute: inMin,
         type: inType, item: inItem, incomeAmount: inType === '수입' ? amt : 0,
@@ -122,12 +111,10 @@ const AccountingView: React.FC = () => {
       setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, newEntry] } : s));
     }
 
-    // 공통: 저장 후 시간 +1시간 추천 및 필드 초기화
     const currentDT = parse(`${inDate} ${inHour}:${inMin}`, 'yyyy-MM-dd H:m', new Date());
     const nextDT = addHours(currentDT, 1);
     setInDate(format(nextDT, 'yyyy-MM-dd')); setInHour(nextDT.getHours()); setInMin(0);
     setInItem(''); setInAmount('');
-    // 주의: workMode는 절대 변경하지 않음 (연속 작업 보장)
   };
 
   const exportToExcel = () => {
@@ -194,7 +181,7 @@ const AccountingView: React.FC = () => {
         <div className="flex-grow">
           <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter">회계장부</h2>
         </div>
-        <div className="flex items-center gap-2 z-10">
+        <div className="flex items-center gap-2">
           {isRenaming === activeSheetId ? (
             <div className="flex items-center bg-[#1c1c1e] border border-blue-500 rounded px-2">
               <input autoFocus className="bg-transparent text-sm font-bold text-white outline-none py-1 w-20" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
@@ -232,14 +219,15 @@ const AccountingView: React.FC = () => {
           </div>
         </div>
 
+        {/* 요약 (2. 한글 글씨 키움) */}
         <div className="flex items-center justify-around py-3 bg-black/50 border-t border-[#222]">
-          <div className="text-center"><p className="text-[10px] text-blue-400 font-bold mb-0.5">총수입</p><p className="text-base md:text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-[10px] text-blue-400 font-bold mb-0.5">총지출</p><p className="text-base md:text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-[10px] text-cyan-400 font-bold mb-0.5 font-black uppercase">누계</p><p className="text-base md:text-lg font-black text-cyan-400">{summary.balance.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총수입</p><p className="text-base md:text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총지출</p><p className="text-base md:text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-sm text-cyan-400 font-black mb-0.5 uppercase">현재누계</p><p className="text-base md:text-lg font-black text-cyan-400">{summary.balance.toLocaleString()}</p></div>
         </div>
       </div>
 
-      {/* 3. 데이터 테이블 (헤더 복구 유지) */}
+      {/* 3. 데이터 테이블 (2. 헤더의 누계 한글 키움) */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
         <table className="hidden md:table w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 font-black border-b border-orange-900">
@@ -250,7 +238,7 @@ const AccountingView: React.FC = () => {
               <th className="p-3 border border-gray-800 text-left pl-6 text-xs">내역</th>
               <th className="p-3 border border-gray-800 text-right text-xs pr-4">수입</th>
               <th className="p-3 border border-gray-800 text-right text-xs pr-4">지출</th>
-              <th className="p-3 border border-gray-800 text-right text-xs pr-4 font-black">누계</th>
+              <th className="p-3 border border-gray-800 text-right text-sm pr-4 font-black">누계</th>
             </tr>
           </thead>
           <tbody>
@@ -268,7 +256,7 @@ const AccountingView: React.FC = () => {
           </tbody>
         </table>
 
-        {/* 모바일 뷰 */}
+        {/* 모바일 뷰 (1. 숫자 색상 및 크기 복구) */}
         <div className="md:hidden flex flex-col">
           {sortedEntries.map(e => (
             <div key={e.id} onClick={() => handleRowClick(e)} className={`p-3 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
@@ -278,7 +266,10 @@ const AccountingView: React.FC = () => {
               </div>
               <div className="flex-grow px-3 overflow-hidden text-left">
                 <p className="text-base font-black text-yellow-400 truncate">{e.item}</p>
-                <p className="text-[13px] font-black text-gray-400">{(e.incomeAmount || e.expenseAmount).toLocaleString()}</p>
+                {/* 1. 원래데로 복구: 회색글씨 제거, 금액 시인성 확보 */}
+                <p className={`text-[15px] font-black ${e.type === '수입' ? 'text-emerald-300' : 'text-rose-300'}`}>
+                  {(e.incomeAmount || e.expenseAmount).toLocaleString()}
+                </p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-[10px] text-cyan-600 font-black uppercase">누계</p>
@@ -289,7 +280,7 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. 입력 푸터 (시간/분 드롭다운 최적화) */}
+      {/* 4. 입력 푸터 */}
       <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-2">
           <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-bold"/>
