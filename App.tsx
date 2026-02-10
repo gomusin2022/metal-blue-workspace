@@ -1,9 +1,9 @@
 /**
- * App.tsx - 메인 컨트롤러 (누락 방지 완전판)
+ * App.tsx - 메인 컨트롤러 (회계 모듈 통합판)
  * 원칙 준수 사항:
- * 1. 소스 누락 금지: 기존 달력, 상세일정, 회원관리 로직 전체 유지
- * 2. 철저한 모듈화: 각 컴포넌트로 정확한 State 전달
- * 3. 꼼꼼한 주석: 데이터 영속화 및 모드 전환 로직 설명
+ * 1. 소스 누락 절대 금지: 기존 모든 도메인 로직 100% 유지
+ * 2. 회계 모듈 연결: AppMode.ACCOUNTING 분기 추가
+ * 3. 철저한 모듈화: AccountingView 컴포넌트 호출
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,11 +13,11 @@ import CalendarView from './components/Calendar/CalendarView';
 import ScheduleDetail from './components/Calendar/ScheduleDetail';
 import MemberView from './components/Member/MemberView';
 import NoteView from './components/Note/NoteView';
+import AccountingView from './components/Accounting/AccountingView'; // 신규 회계 모듈 임포트
 
 const App: React.FC = () => {
   // --- [1. 시스템 설정 및 타이틀 상태] ---
   const [mode, setMode] = useState<AppMode>(AppMode.CALENDAR);
-  // 초기값을 교정된 스펠링으로 설정
   const [appTitle, setAppTitle] = useState('Metal Blue WorkSpace'); 
   const [noteTitle, setNoteTitle] = useState('Standard Note'); 
 
@@ -39,13 +39,12 @@ const App: React.FC = () => {
     if (savedMembers) setMembers(JSON.parse(savedMembers));
     if (savedNotes) setNotes(JSON.parse(savedNotes));
     
-    // 로컬 스토리지에 저장된 값이 구버전(Smart Workspace 등)이면 새 타이틀로 강제 업데이트
     const newTitle = 'Metal Blue WorkSpace';
     if (savedAppTitle && savedAppTitle !== 'Smart Workspace' && savedAppTitle !== 'Metal Blue WorkScpace') {
       setAppTitle(savedAppTitle);
     } else {
       setAppTitle(newTitle);
-      localStorage.setItem('app_main_title', newTitle); // 로컬 스토리지도 즉시 갱신
+      localStorage.setItem('app_main_title', newTitle);
     }
     
     if (savedNoteTitle) setNoteTitle(savedNoteTitle);
@@ -102,6 +101,10 @@ const App: React.FC = () => {
             noteTitle={noteTitle}
             setNoteTitle={setNoteTitle}
           />
+        );
+      case AppMode.ACCOUNTING: // 회계 모듈 렌더링 추가
+        return (
+          <AccountingView />
         );
       case AppMode.YOUTUBE:
         return (
