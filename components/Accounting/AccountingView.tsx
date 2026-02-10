@@ -228,7 +228,7 @@ const AccountingView: React.FC = () => {
 
       {/* 3. 데이터 테이블 */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
-        {/* PC 버전 - 정렬 복구 및 내역 출력 */}
+        {/* [PC 버전] - 테이블 헤더 복구 및 내역(item) 직접 매핑 */}
         <table className="hidden md:table w-full border-collapse table-fixed">
           <thead className="sticky top-0 z-10 bg-[#000] text-[#D2691E] font-black border-b border-[#1a1a2e]">
             <tr>
@@ -244,31 +244,32 @@ const AccountingView: React.FC = () => {
           <tbody>
             {sortedEntries.map(e => (
               <tr key={e.id} onClick={() => handleRowClick(e)} className={`cursor-pointer border-b border-gray-900 transition-colors ${editingEntryId === e.id ? 'bg-blue-900/40' : 'hover:bg-[#1a1a2e]'}`}>
-                <td className="p-3 text-center text-blue-100 font-bold text-base">{e.date}</td>
-                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
-                <td className={`p-3 text-center font-black ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
-                <td className="p-3 font-black text-yellow-400 text-base text-left pl-6 truncate">{e.item}</td>
-                <td className="p-3 text-right text-emerald-300 font-black pr-4">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-rose-300 font-black pr-4">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4">{e.balance.toLocaleString()}</td>
+                <td className="p-3 text-center text-blue-100 font-bold text-base truncate">{e.date}</td>
+                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono truncate">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
+                <td className={`p-3 text-center font-black truncate ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
+                {/* 1. PC 내역(item) 출력 정상화 */}
+                <td className="p-3 font-black text-yellow-400 text-base text-left pl-6 break-words overflow-hidden">{e.item}</td>
+                <td className="p-3 text-right text-emerald-300 font-black pr-4 truncate">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-rose-300 font-black pr-4 truncate">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4 truncate">{e.balance.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* 모바일 버전 - 헤더 좌측 정렬 반영 */}
+        {/* [모바일 버전] - 헤더 좌측 정렬 고수 */}
         <div className="md:hidden flex flex-col">
           <div className="sticky top-0 z-10 bg-[#000] text-[#D2691E] font-black border-b border-[#1a1a2e] flex px-3 py-2 text-[11px]">
-            <div className="w-16 shrink-0 text-left">날짜</div>
-            <div className="w-12 shrink-0 text-left">시간</div>
+            <div className="w-16 shrink-0 text-left pl-1">날짜</div>
+            <div className="w-12 shrink-0 text-left pl-1">시간</div>
             <div className="flex-grow px-2 text-center">수입지출 항목</div>
             <div className="w-20 shrink-0 text-right pr-2">누계</div>
           </div>
           {sortedEntries.map(e => (
             <div key={e.id} onClick={() => handleRowClick(e)} className={`p-3 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
-              <div className="flex flex-col shrink-0 w-28">
-                <span className="text-[14px] text-blue-100 font-bold text-left">{e.date.slice(5)} <span className="text-cyan-400 ml-1 font-black">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</span></span>
-                <span className={`text-[11px] font-black uppercase text-left ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</span>
+              <div className="flex flex-col shrink-0 w-28 text-left">
+                <span className="text-[14px] text-blue-100 font-bold">{e.date.slice(5)} <span className="text-cyan-400 ml-1 font-black">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</span></span>
+                <span className={`text-[11px] font-black uppercase ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</span>
               </div>
               <div className="flex-grow px-1 overflow-hidden text-left">
                 <p className="text-base font-black text-yellow-400 truncate">{e.item}</p>
@@ -285,17 +286,17 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. 입력 푸터 (시간 입력 2열 드롭다운 완벽 보구) */}
+      {/* 4. 입력 푸터 */}
       <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-2">
           <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-bold"/>
           
-          {/* 시간 입력 2열 드롭다운 (사장님 지시사항) */}
-          <div className="col-span-2 md:w-36 grid grid-cols-2 gap-1">
-            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
+          {/* 2. 시간 입력 2열 UI 고정 (사장님 지시사항) */}
+          <div className="col-span-2 md:w-40 grid grid-cols-2 gap-1 bg-transparent">
+            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="w-full bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
               {Array.from({length: 24}).map((_, i) => (<option key={i} value={i} className="bg-[#111] text-white">{String(i).padStart(2,'0')}시</option>))}
             </select>
-            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
+            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="w-full bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none cursor-pointer">
               {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m} className="bg-[#111] text-white">{String(m).padStart(2,'0')}분</option>)}
             </select>
           </div>
