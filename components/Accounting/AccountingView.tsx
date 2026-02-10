@@ -10,6 +10,7 @@ import { AccountingEntry, AccountingSheet } from '../../types';
 type WorkMode = '추가' | '수정' | '복사' | '삭제';
 
 const AccountingView: React.FC = () => {
+  // --- [상태 관리] ---
   const [sheets, setSheets] = useState<AccountingSheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string>('');
   const [workMode, setWorkMode] = useState<WorkMode>('추가');
@@ -26,6 +27,7 @@ const AccountingView: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 데이터 로드/저장
   useEffect(() => {
     const saved = localStorage.getItem('metal_accounting_sheets');
     if (saved) {
@@ -65,17 +67,19 @@ const AccountingView: React.FC = () => {
     return { totalInc, totalExp, balance: totalInc - totalExp };
   }, [sortedEntries]);
 
+  // --- [핸들러] ---
   const handleAddSheet = () => {
-    const name = window.prompt("새로운 시트 이름을 입력하세요", "");
-    if (!name) return;
-    const newSheet: AccountingSheet = { id: crypto.randomUUID(), name, entries: [] };
-    setSheets([...sheets, newSheet]);
-    setActiveSheetId(newSheet.id);
+    const name = window.prompt("새 시트 이름", "");
+    if (name) {
+      const newSheet = { id: crypto.randomUUID(), name, entries: [] };
+      setSheets([...sheets, newSheet]);
+      setActiveSheetId(newSheet.id);
+    }
   };
 
   const handleDeleteSheet = () => {
-    if (sheets.length <= 1) return alert("최소 하나의 시트는 유지해야 합니다.");
-    if (window.confirm(`시트 [${activeSheet?.name}]를 삭제하시겠습니까?`)) {
+    if (sheets.length <= 1) return alert("최소 하나의 시트 필요");
+    if (window.confirm(`[${activeSheet?.name}] 삭제?`)) {
       const filtered = sheets.filter(s => s.id !== activeSheetId);
       setSheets(filtered);
       setActiveSheetId(filtered[0].id);
@@ -83,8 +87,9 @@ const AccountingView: React.FC = () => {
   };
 
   const commitRename = () => {
-    if (!renameValue.trim()) return setIsRenaming(null);
-    setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, name: renameValue } : s));
+    if (renameValue.trim()) {
+      setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, name: renameValue } : s));
+    }
     setIsRenaming(null);
   };
 
@@ -100,7 +105,7 @@ const AccountingView: React.FC = () => {
       } : s));
       setEditingEntryId(null); setWorkMode('추가');
     } else {
-      const newEntry: AccountingEntry = {
+      const newEntry = {
         id: crypto.randomUUID(), date: inDate, hour: inHour, minute: inMin,
         type: inType, item: inItem, incomeAmount: inType === '수입' ? amt : 0,
         expenseAmount: inType === '지출' ? amt : 0, balance: 0
@@ -116,8 +121,8 @@ const AccountingView: React.FC = () => {
   const exportToExcel = () => {
     if (!activeSheet || sortedEntries.length === 0) return;
     const defaultFileName = `회계장부_${activeSheet.name}_${format(new Date(), 'yyyyMMdd')}`;
-    const customName = window.prompt("저장할 파일 이름을 입력하세요:", defaultFileName);
-    if (customName === null) return;
+    const customName = window.prompt("파일명 입력:", defaultFileName);
+    if (!customName) return;
     const wb = XLSX.utils.book_new();
     const data = sortedEntries.map(e => ({
       '날짜': e.date, '시간': `${String(e.hour).padStart(2,'0')}:${String(e.minute).padStart(2,'0')}`,
@@ -138,32 +143,26 @@ const AccountingView: React.FC = () => {
         const wb = XLSX.read(bstr, { type: 'binary' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data: any[] = XLSX.utils.sheet_to_json(ws);
-        const importedEntries: AccountingEntry[] = data.map(row => {
-          const [h, m] = (String(row['시간']) || "00:00").split(':');
-          return {
-            id: crypto.randomUUID(), date: String(row['날짜'] || inDate),
-            hour: parseInt(h) || 0, minute: parseInt(m) || 0,
-            type: row['구분'] === '지출' ? '지출' : '수입',
-            item: String(row['내역'] || '불러온 내역'),
-            incomeAmount: Number(row['수입금액'] || 0),
-            expenseAmount: Number(row['지출금액'] || 0),
-            balance: 0
-          };
-        });
+        const imported = data.map(row => ({
+          id: crypto.randomUUID(), date: String(row['날짜'] || inDate),
+          hour: parseInt(String(row['시간'] || '0').split(':')[0]), 
+          minute: parseInt(String(row['시간'] || '0').split(':')[1] || '0'),
+          type: row['구분'] || '수입', item: String(row['내역'] || ''),
+          incomeAmount: Number(row['수입금액'] || 0), expenseAmount: Number(row['지출금액'] || 0), balance: 0
+        }));
         if (window.confirm("기존 내용을 삭제하고 덮어씌우시겠습니까?")) {
-            setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: importedEntries } : s));
+          setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: imported } : s));
         } else {
-            setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, ...importedEntries] } : s));
+          setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: [...s.entries, ...imported] } : s));
         }
-      } catch (err) { alert("엑셀 불러오기 오류"); }
+      } catch (err) { alert("오류"); }
     };
     reader.readAsBinaryString(file);
-    e.target.value = '';
   };
 
   const handleRowClick = (entry: AccountingEntry) => {
     if (workMode === '삭제') {
-      if (window.confirm(`[${entry.item}] 내역을 삭제하시겠습니까?`)) {
+      if (window.confirm(`[${entry.item}] 삭제?`)) {
         setSheets(sheets.map(s => s.id === activeSheetId ? { ...s, entries: s.entries.filter(e => e.id !== entry.id) } : s));
       }
     } else if (workMode === '수정' || workMode === '복사') {
@@ -178,110 +177,101 @@ const AccountingView: React.FC = () => {
     <div className="flex flex-col h-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans select-none">
       
       {/* 1. 타이틀바 */}
-      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-3 h-16 shrink-0 relative">
-        <div className="flex-grow flex items-center justify-start pl-1">
-          <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter">회계장부</h2>
+      <div className="flex items-center bg-[#000] border-b border-[#1a1a2e] px-3 h-14 shrink-0">
+        <div className="flex-grow pl-1">
+          <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter">회계장부</h2>
         </div>
-
         <div className="flex items-center gap-1 z-10">
           {isRenaming === activeSheetId ? (
             <div className="flex items-center bg-[#1c1c1e] border border-blue-500 rounded px-2">
-              <input autoFocus className="bg-transparent text-lg font-bold text-white outline-none py-1 w-24 text-center" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
-              <button onClick={commitRename} className="text-emerald-400 p-1"><Check className="w-5 h-5"/></button>
+              <input autoFocus className="bg-transparent text-sm font-bold text-white outline-none py-1 w-20" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && commitRename()}/>
+              <button onClick={commitRename} className="text-emerald-400 p-1"><Check className="w-4 h-4"/></button>
             </div>
           ) : (
-            <div className="flex items-center gap-1">
-              <select value={activeSheetId} onChange={(e) => setActiveSheetId(e.target.value)} className="bg-[#1c1c1e] text-blue-400 text-lg font-black outline-none cursor-pointer appearance-none border border-[#333] px-3 py-2 rounded-lg">
-                {sheets.map(s => <option key={s.id} value={s.id} className="bg-[#1c1c1e] text-white font-bold">{s.name}</option>)}
+            <div className="flex items-center">
+              <select value={activeSheetId} onChange={(e) => setActiveSheetId(e.target.value)} className="bg-[#1c1c1e] text-blue-400 text-sm font-black outline-none border border-[#333] px-2 py-1.5 rounded-lg appearance-none">
+                {sheets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <button onClick={() => {setIsRenaming(activeSheetId); setRenameValue(activeSheet?.name || '');}} className="p-2 text-gray-500 hover:text-blue-400"><Edit2 className="w-5 h-5" /></button>
+              <button onClick={() => {setIsRenaming(activeSheetId); setRenameValue(activeSheet?.name || '');}} className="p-1.5 text-gray-600"><Edit2 className="w-4 h-4" /></button>
             </div>
           )}
-          <button onClick={handleAddSheet} className="p-2 bg-blue-600 rounded active:scale-95 text-white shadow-lg"><Plus className="w-6 h-6" /></button>
-          <button onClick={handleDeleteSheet} className="p-2 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-6 h-6" /></button>
+          <button onClick={handleAddSheet} className="p-1.5 bg-blue-600 rounded active:scale-95"><Plus className="w-5 h-5" /></button>
+          <button onClick={handleDeleteSheet} className="p-1.5 bg-red-900/40 text-red-500 rounded active:scale-95 ml-0.5"><Trash2 className="w-5 h-5" /></button>
         </div>
       </div>
 
-      {/* 2. 대시보드 및 컨트롤 */}
+      {/* 2. 대시보드 */}
       <div className="flex flex-col bg-[#111] border-b border-[#222]">
-        <div className="flex items-center justify-between p-2.5">
-          {/* 작업 모드 버튼: 한글 글씨만 키우고 버튼 크기는 정돈 */}
-          <div className="flex bg-[#1c1c1e] p-1 rounded-lg gap-1.5 border border-[#333]">
+        <div className="flex items-center justify-between p-2">
+          {/* 작업 버튼: 크기 줄임, 한글 강조 */}
+          <div className="flex bg-[#1c1c1e] p-1 rounded-lg gap-1 border border-[#333]">
             {(['추가', '수정', '복사', '삭제'] as WorkMode[]).map(m => (
               <button key={m} onClick={() => { setWorkMode(m); if(m==='추가') setEditingEntryId(null); }} 
-                      className={`px-4 py-2 rounded-lg text-xl font-black transition-all whitespace-nowrap ${workMode === m ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600'}`}>
+                      className={`px-3 py-1.5 rounded-md text-sm font-black transition-all ${workMode === m ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600'}`}>
                 {m}
               </button>
             ))}
           </div>
           <div className="flex gap-1.5">
-            <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-indigo-600 rounded-lg text-white active:scale-95 shadow-md"><FileUp className="w-6 h-6"/></button>
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-indigo-600 rounded active:scale-95"><FileUp className="w-5 h-5"/></button>
             <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx,.xls"/>
-            <button onClick={exportToExcel} className="p-2 bg-emerald-600 rounded-lg text-white active:scale-95 shadow-md"><FileDown className="w-6 h-6"/></button>
-            <button onClick={() => window.print()} className="p-2 bg-orange-600 rounded-lg text-white active:scale-95 shadow-md"><Printer className="w-6 h-6"/></button>
+            <button onClick={exportToExcel} className="p-2 bg-emerald-600 rounded active:scale-95"><FileDown className="w-5 h-5"/></button>
+            <button onClick={() => window.print()} className="p-2 bg-orange-600 rounded active:scale-95"><Printer className="w-5 h-5"/></button>
           </div>
         </div>
 
-        {/* 요약 영역: 한글(라벨)은 키우고 숫자는 기존 수준으로 복구 */}
-        <div className="flex items-center justify-around py-4 bg-black/50 border-t border-[#222]">
-          <div className="text-center">
-            <p className="text-lg text-blue-400 font-black mb-0.5 tracking-tighter">총수입</p>
-            <p className="text-xl md:text-2xl font-black text-emerald-400 tracking-tight">+ {summary.totalInc.toLocaleString()}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg text-blue-400 font-black mb-0.5 tracking-tighter">총지출</p>
-            <p className="text-xl md:text-2xl font-black text-rose-500 tracking-tight">- {summary.totalExp.toLocaleString()}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg text-cyan-400 font-black mb-0.5 tracking-tighter">현재누계</p>
-            <p className="text-xl md:text-2xl font-black text-cyan-400 tracking-tight">= {summary.balance.toLocaleString()}</p>
-          </div>
+        {/* 요약: 한글/숫자 크기 적절히 축소 */}
+        <div className="flex items-center justify-around py-3 bg-black/50 border-t border-[#222]">
+          <div className="text-center"><p className="text-[11px] text-blue-400 font-bold mb-0.5">총수입</p><p className="text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-[11px] text-blue-400 font-bold mb-0.5">총지출</p><p className="text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
+          <div className="text-center"><p className="text-[11px] text-cyan-400 font-bold mb-0.5">현재누계</p><p className="text-lg font-black text-cyan-400">{summary.balance.toLocaleString()}</p></div>
         </div>
       </div>
 
+      {/* 3. 데이터 테이블 (헤더 복구) */}
       <div className="flex-grow overflow-auto no-scrollbar bg-black">
         <table className="hidden md:table w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1c1c1e] text-orange-500 font-black border-b border-orange-900">
             <tr>
-              <th className="p-3 border border-gray-800 w-36 text-sm">날짜</th>
-              <th className="p-3 border border-gray-800 w-28 text-sm">시간</th>
-              <th className="p-3 border border-gray-800 w-24 text-sm">구분</th>
-              <th className="p-3 border border-gray-800 text-left pl-6 text-sm">내역</th>
-              <th className="p-3 border border-gray-800 text-right text-sm">수입</th>
-              <th className="p-3 border border-gray-800 text-right text-sm">지출</th>
-              <th className="p-3 border border-gray-800 text-right text-sm">누계</th>
+              <th className="p-3 border border-gray-800 w-36 text-xs">날짜</th>
+              <th className="p-3 border border-gray-800 w-28 text-xs">시간</th>
+              <th className="p-3 border border-gray-800 w-24 text-xs">구분</th>
+              <th className="p-3 border border-gray-800 text-left pl-6 text-xs">내역</th>
+              <th className="p-3 border border-gray-800 text-right text-xs pr-4">수입</th>
+              <th className="p-3 border border-gray-800 text-right text-xs pr-4">지출</th>
+              <th className="p-3 border border-gray-800 text-right text-xs pr-4">누계</th>
             </tr>
           </thead>
           <tbody>
             {sortedEntries.map(e => (
               <tr key={e.id} onClick={() => handleRowClick(e)} className={`cursor-pointer border-b border-gray-900 transition-colors ${editingEntryId === e.id ? 'bg-blue-900/40' : 'hover:bg-[#1a1a2e]'}`}>
-                <td className="p-3 text-center text-blue-100 font-bold">{e.date}</td>
-                <td className="p-3 text-center text-cyan-400 font-black font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
+                <td className="p-3 text-center text-blue-100 font-bold text-base">{e.date}</td>
+                <td className="p-3 text-center text-cyan-400 font-black text-base font-mono">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</td>
                 <td className={`p-3 text-center font-black ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</td>
-                <td className="p-3 font-black text-yellow-400 text-lg text-left pl-6 truncate">{e.item}</td>
-                <td className="p-3 text-right text-emerald-300 font-black">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-rose-300 font-black">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
-                <td className="p-3 text-right text-cyan-300 font-black text-lg">{e.balance.toLocaleString()}</td>
+                <td className="p-3 font-black text-yellow-400 text-base text-left pl-6 truncate">{e.item}</td>
+                <td className="p-3 text-right text-emerald-300 font-black pr-4">{e.incomeAmount > 0 ? e.incomeAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-rose-300 font-black pr-4">{e.expenseAmount > 0 ? e.expenseAmount.toLocaleString() : '-'}</td>
+                <td className="p-3 text-right text-cyan-300 font-black text-base pr-4">{e.balance.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* 모바일 뷰 카드 */}
+        {/* 모바일 뷰 */}
         <div className="md:hidden flex flex-col">
           {sortedEntries.map(e => (
-            <div key={e.id} onClick={() => handleRowClick(e)} className={`p-4 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
+            <div key={e.id} onClick={() => handleRowClick(e)} className={`p-3 border-b border-[#111] flex items-center justify-between active:bg-[#1a1a2e] ${editingEntryId === e.id ? 'bg-blue-900/40' : ''}`}>
               <div className="flex flex-col shrink-0">
-                <span className="text-[13px] text-blue-100 font-bold">{e.date.slice(5)} <span className="text-cyan-400 ml-1 font-black">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</span></span>
+                <span className="text-[14px] text-blue-100 font-bold">{e.date.slice(5)} <span className="text-cyan-400 ml-1 font-black">{String(e.hour).padStart(2,'0')}:{String(e.minute).padStart(2,'0')}</span></span>
                 <span className={`text-[11px] font-black uppercase ${e.type === '수입' ? 'text-emerald-500' : 'text-rose-500'}`}>{e.type}</span>
               </div>
-              <div className="flex-grow px-4 overflow-hidden text-left">
-                <p className="text-lg font-black text-yellow-400 truncate">{e.item}</p>
-                <p className={`text-base font-black ${e.type === '수입' ? 'text-emerald-300' : 'text-rose-300'}`}>{(e.incomeAmount || e.expenseAmount).toLocaleString()}</p>
+              <div className="flex-grow px-3 overflow-hidden text-left">
+                <p className="text-base font-black text-yellow-400 truncate">{e.item}</p>
+                <p className="text-sm font-black text-gray-400">{(e.incomeAmount || e.expenseAmount).toLocaleString()}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-[10px] text-cyan-600 font-bold uppercase">누계</p>
-                <p className="text-xl font-black text-cyan-300">{e.balance.toLocaleString()}</p>
+                <p className="text-lg font-black text-cyan-300">{e.balance.toLocaleString()}</p>
               </div>
             </div>
           ))}
@@ -289,26 +279,24 @@ const AccountingView: React.FC = () => {
       </div>
 
       {/* 4. 입력 푸터 */}
-      <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-3 pb-safe shadow-2xl shrink-0">
+      <div className="bg-[#1a1a2e] border-t-2 border-blue-600 p-2 pb-safe shadow-2xl shrink-0">
         <div className="grid grid-cols-4 md:flex items-center gap-2">
-          <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2.5 rounded-lg text-sm text-white font-bold"/>
-          <div className="col-span-2 md:w-36 flex gap-1">
-            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-cyan-400 font-black text-xl text-center appearance-none">
+          <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="col-span-2 md:w-44 bg-black border border-gray-700 p-2 rounded text-sm text-white font-bold"/>
+          <div className="col-span-2 md:w-32 flex gap-1">
+            <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none">
               {Array.from({length: 24}).map((_, i) => <option key={i} value={i}>{String(i).padStart(2,'0')}시</option>)}
             </select>
-            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-cyan-400 font-black text-xl text-center appearance-none">
+            <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="flex-grow bg-black border border-gray-700 p-2 rounded text-cyan-400 font-black text-lg text-center appearance-none">
               {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m}>{String(m).padStart(2,'0')}분</option>)}
             </select>
           </div>
-          <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-2.5 rounded-lg text-yellow-500 font-black text-sm">
+          <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')} className="col-span-1 bg-black border border-gray-700 p-2 rounded text-yellow-500 font-black text-sm">
             <option value="수입">수입</option><option value="지출">지출</option>
           </select>
-          <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-2.5 rounded-lg text-white font-black text-base"/>
+          <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내역" className="col-span-3 md:flex-grow bg-black border border-gray-700 p-2 rounded text-white font-black text-sm"/>
           <div className="col-span-4 md:w-auto flex gap-2">
-            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className={`flex-grow md:w-48 bg-black border border-gray-700 p-2.5 rounded-lg text-right font-black text-xl ${inType === '수입' ? 'text-emerald-400' : 'text-rose-400'}`}/>
-            <button onClick={handleSaveEntry} className={`px-8 py-2.5 ${workMode === '수정' ? 'bg-orange-600' : 'bg-blue-600'} text-white font-black rounded-lg active:scale-95 flex items-center justify-center min-w-[70px]`}>
-              <Check className="w-8 h-8"/>
-            </button>
+            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="금액" className="flex-grow md:w-44 bg-black border border-gray-700 p-2 rounded text-right font-black text-lg"/>
+            <button onClick={handleSaveEntry} className="px-6 py-2 bg-blue-600 text-white rounded active:scale-95"><Check className="w-6 h-6"/></button>
           </div>
         </div>
       </div>
