@@ -30,11 +30,14 @@ export default async function handler(
          */
         return {
           allowedContentTypes: [
-            'image/jpeg', 
-            'image/png', 
-            'image/gif', 
-            'application/pdf', 
-            'text/plain'
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'application/pdf',
+            'text/plain',
+            'video/mp4',
+            'video/webm',
+            'video/quicktime'
           ],
           tokenPayload: JSON.stringify({
             // 필요 시 추가적인 사용자 권한 로직 삽입 가능
@@ -52,8 +55,8 @@ export default async function handler(
   } catch (error) {
     console.error('Blob Handler Error:', error);
     // 3. 에러 발생 시 상세 메시지 반환
-    return response.status(400).json({ 
-      error: (error as Error).message 
+    return response.status(400).json({
+      error: (error as Error).message
     });
   }
 }
