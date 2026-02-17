@@ -20,13 +20,17 @@ export default async function handler(request, response) {
             body,
             request,
             onBeforeGenerateToken: async (pathname) => {
-                // [권한 설정] 모든 파일 형식 허용
-                // 클라이언트가 요청한 contentType을 그대로 허용 목록에 추가합니다.
-                // request.body.payload 내에 클라이언트가 보낸 정보가 들어있습니다.
-                const requestedContentType = body?.payload?.contentType;
-
                 return {
-                    allowedContentTypes: requestedContentType ? [requestedContentType] : [],
+                    allowedContentTypes: [
+                        'image/jpeg',
+                        'image/png',
+                        'image/gif',
+                        'application/pdf',
+                        'text/plain',
+                        'video/mp4',
+                        'video/webm',
+                        'video/quicktime'
+                    ],
                     tokenPayload: JSON.stringify({
                         // uploadedBy: user.id, // 예시
                     }),
