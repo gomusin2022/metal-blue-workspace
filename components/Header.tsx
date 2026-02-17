@@ -84,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
               onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
             />
           ) : (
-            <h1 
+            <h1
               className="text-[26px] sm:text-3xl md:text-5xl lg:text-6xl font-black cursor-pointer tracking-tighter bg-gradient-to-r from-cyan-200 via-blue-300 to-cyan-100 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(147,197,253,0.5)] truncate"
               onClick={() => setIsEditingTitle(true)}
             >
@@ -92,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
             </h1>
           )}
         </div>
-        
+
         <div className="flex flex-col text-right shrink-0 min-w-[110px] md:min-w-[220px]">
           <span className="text-blue-400 text-[11px] md:text-xl font-bold mb-1">
             {formatDate(currentTime)}
@@ -117,21 +117,19 @@ const Header: React.FC<HeaderProps> = ({ mode, setMode, title, setTitle }) => {
               key={itemMode}
               onClick={() => {
                 if (itemMode === AppMode.YOUTUBE) {
-                  window.open("https://www.youtube.com", "_blank");
+                  window.open("https://youtube.com/channel/UCkJOv1qeGXiaVjrA81UQj-w?si=H_Owgs97IoWHFYkv", "_blank");
                 } else {
                   setMode(itemMode);
                 }
               }}
-              className={`p-2 md:p-3.5 rounded-lg transition-all active:scale-95 ${
-                mode === itemMode 
-                  ? 'bg-blue-600 scale-105 shadow-lg shadow-blue-900' 
-                  : 'bg-[#2c2c2e] hover:bg-[#3a3a5e]'
-              }`}
+              className={`p-2 md:p-3.5 rounded-lg transition-all active:scale-95 ${mode === itemMode
+                ? 'bg-blue-600 scale-105 shadow-lg shadow-blue-900'
+                : 'bg-[#2c2c2e] hover:bg-[#3a3a5e]'
+                }`}
             >
-              <Icon 
-                className={`w-5 h-5 md:w-9 md:h-9 ${
-                  itemMode === AppMode.YOUTUBE ? 'text-[#FF0000]' : 'text-white'
-                }`} 
+              <Icon
+                className={`w-5 h-5 md:w-9 md:h-9 ${itemMode === AppMode.YOUTUBE ? 'text-[#FF0000]' : 'text-white'
+                  }`}
               />
             </button>
           ))}
