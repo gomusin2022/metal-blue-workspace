@@ -336,49 +336,54 @@ const AccountingView: React.FC = () => {
       </button>
 
       <HalfModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={getModalTitle()}>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 pb-safe">
+          {/* 1. 날짜 및 시간 (한 줄) */}
           <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-xs text-gray-400 font-bold mb-1 block">날짜</label>
-              <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="w-full bg-[#111] border border-gray-700 p-3 rounded-xl text-white font-bold text-lg" />
+            <div className="w-[45%]">
+              <label className="text-[10px] text-gray-400 font-bold mb-0.5 block">날짜</label>
+              <input type="date" value={inDate} onChange={e => setInDate(e.target.value)} className="w-full bg-[#111] border border-gray-700 p-2 rounded-lg text-white font-bold text-sm h-10" />
             </div>
-            <div className="w-1/3">
-              <label className="text-xs text-gray-400 font-bold mb-1 block">구분</label>
+            <div className="flex-1 flex gap-1">
+              <div className="flex-1">
+                <label className="text-[10px] text-gray-400 font-bold mb-0.5 block">시</label>
+                <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="w-full bg-[#111] border border-gray-700 px-1 rounded-lg text-cyan-400 font-black text-base text-center appearance-none h-10">
+                  {Array.from({ length: 24 }).map((_, i) => (<option key={i} value={i}>{String(i).padStart(2, '0')}</option>))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-gray-400 font-bold mb-0.5 block">분</label>
+                <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="w-full bg-[#111] border border-gray-700 px-1 rounded-lg text-cyan-400 font-black text-base text-center appearance-none h-10">
+                  {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. 구분 및 금액 (한 줄) */}
+          <div className="flex gap-2">
+            <div className="w-[25%]">
+              <label className="text-[10px] text-gray-400 font-bold mb-0.5 block">구분</label>
               <select value={inType} onChange={e => setInType(e.target.value as '수입' | '지출')}
-                className={`w-full h-[52px] border border-gray-700 p-2 rounded-xl text-lg font-black appearance-none text-center ${inType === '수입' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-rose-400'}`}>
+                className={`w-full border border-gray-700 p-1 rounded-lg text-base font-black appearance-none text-center h-10 ${inType === '수입' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-rose-400'}`}>
                 <option value="수입">수입</option><option value="지출">지출</option>
               </select>
             </div>
-          </div>
-
-          <div className="flex gap-2">
             <div className="flex-1">
-              <label className="text-xs text-gray-400 font-bold mb-1 block">시</label>
-              <select value={inHour} onChange={e => setInHour(Number(e.target.value))} className="w-full h-12 bg-[#111] border border-gray-700 px-3 rounded-xl text-cyan-400 font-black text-lg text-center appearance-none">
-                {Array.from({ length: 24 }).map((_, i) => (<option key={i} value={i}>{String(i).padStart(2, '0')}시</option>))}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="text-xs text-gray-400 font-bold mb-1 block">분</label>
-              <select value={inMin} onChange={e => setInMin(Number(e.target.value))} className="w-full h-12 bg-[#111] border border-gray-700 px-3 rounded-xl text-cyan-400 font-black text-lg text-center appearance-none">
-                {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>)}
-              </select>
+              <label className="text-[10px] text-gray-400 font-bold mb-0.5 block">금액 (원)</label>
+              <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="0" className="w-full bg-[#111] border border-gray-700 p-2 rounded-lg text-right font-black text-xl text-yellow-400 h-10" />
             </div>
           </div>
 
+          {/* 3. 내역 (한 줄) */}
           <div>
-            <label className="text-xs text-gray-400 font-bold mb-1 block">내역 (항목)</label>
-            <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내용을 입력하세요" className="w-full bg-[#111] border border-gray-700 p-3 rounded-xl text-white font-bold text-lg" />
+            <label className="text-[10px] text-gray-400 font-bold mb-0.5 block">내역</label>
+            <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내용 입력" className="w-full bg-[#111] border border-gray-700 p-2 rounded-lg text-white font-bold text-base h-10" />
           </div>
 
-          <div>
-            <label className="text-xs text-gray-400 font-bold mb-1 block">금액 (원)</label>
-            <input type="number" value={inAmount} onChange={e => setInAmount(e.target.value)} placeholder="0" className="w-full bg-[#111] border border-gray-700 p-3 rounded-xl text-right font-black text-2xl text-yellow-400" />
-          </div>
-
-          <button onClick={handleSaveEntry} className="w-full mt-4 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <Check className="w-6 h-6" />
-            {workMode === '수정' ? '수정 완료' : '등록하기'}
+          {/* 4. 저장 버튼 */}
+          <button onClick={handleSaveEntry} className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-base shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+            <Check className="w-5 h-5" />
+            <span>저장</span>
           </button>
         </div>
       </HalfModal>
