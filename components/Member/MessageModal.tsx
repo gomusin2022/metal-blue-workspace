@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Send, Users, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Send, Users, MessageSquare, Paperclip, FileText, Trash2 } from 'lucide-react';
 import { Member } from '../../types';
-import { sendSmsMessage } from '../../services/apiService';
+import { sendSmsMessage, uploadFiles } from '../../services/apiService';
 
 interface MessageModalProps {
   isOpen: boolean;
@@ -14,36 +14,79 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  // 모달이 열릴 때마다 메시지 초기화
+  // [신규 추가] 첨부 파일 관리 상태
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  // [신규 추가] 파일 입력 요소 참조
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 모달이 열릴 때마다 상태 초기화
   useEffect(() => {
     if (isOpen) {
       setMessage('');
+      setSelectedFiles([]); // 파일 목록 초기화
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
+  // [신규 추가] 파일 선택 핸들러
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      // 기존 파일 목록에 추가 (중복 제거 로직은 필요 시 추가)
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  // [신규 추가] 선택된 파일 삭제 핸들러
+  const removeFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   /**
-   * [메시지 전송 핸들러]
-   * 작성된 텍스트 메시지를 선택된 회원들의 연락처로 발송합니다.
-   * DB 파일이나 이미지는 사용자가 직접 문자 앱의 첨부 기능을 이용해 전송하는 방식입니다.
+   * [메시지 전송 핸들러] - 로직 업데이트
+   * 1. 메시지 유효성 검사
+   * 2. (파일 존재 시) 파일 업로드 수행 -> URL 획득
+   * 3. 메시지 + 파일 URL 전송
    */
   const handleSend = async () => {
     const trimmedMsg = message.trim();
-    if (!trimmedMsg || targets.length === 0) {
-      return alert("메시지 내용이 없거나 전송 대상이 없습니다.");
+
+    // 내용이나 파일 중 하나라도 있으면 전송 가능하도록 조건 완화
+    if ((!trimmedMsg && selectedFiles.length === 0) || targets.length === 0) {
+      return alert("메시지 내용이나 첨부 파일이 없거나 전송 대상이 없습니다.");
     }
-    
-    if (!window.confirm(`${targets.length}명에게 문자를 발송하시겠습니까?`)) return;
+
+    // 첨부 파일 개수 확인
+    const attachmentMsg = selectedFiles.length > 0 ? ` (+파일 ${selectedFiles.length}개)` : '';
+
+    if (!window.confirm(`${targets.length}명에게 문자를 발송하시겠습니까?${attachmentMsg}`)) return;
 
     setIsSending(true);
     try {
       // 연락처에서 숫자만 추출
       const phoneNumbers = targets.map(m => m.phone.replace(/\D/g, ''));
-      
-      // API 서비스 호출 (기존 로직 보존)
-      const success = await sendSmsMessage(phoneNumbers, trimmedMsg);
-      
+
+      let attachmentUrls: string[] = [];
+
+      // [신규 로직] 첨부 파일이 있는 경우 업로드 진행
+      if (selectedFiles.length > 0) {
+        try {
+          // apiService의 uploadFiles 함수 호출
+          attachmentUrls = await uploadFiles(selectedFiles);
+          console.log("파일 업로드 성공:", attachmentUrls);
+        } catch (uploadError) {
+          console.error("파일 업로드 실패:", uploadError);
+          alert("파일 업로드에 실패했습니다. 전송을 중단합니다.");
+          setIsSending(false);
+          return;
+        }
+      }
+
+      // API 서비스 호출 (파일 URL 포함)
+      const success = await sendSmsMessage(phoneNumbers, trimmedMsg, attachmentUrls);
+
       if (success) {
         alert("성공적으로 발송되었습니다.");
         onClose();
@@ -61,7 +104,7 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
   return (
     <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-4">
       <div className="w-full max-w-md bg-[#1a1a2e] rounded-t-[2rem] md:rounded-[2rem] border border-white/10 shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
-        
+
         {/* 헤더 섹션 */}
         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-3">
@@ -75,8 +118,8 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-2 text-gray-400 hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
@@ -84,36 +127,84 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
         </div>
 
         {/* 본문 섹션 */}
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
           <div className="relative">
             <textarea
-              className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-orange-500/50 transition-all resize-none font-medium text-sm leading-relaxed"
-              placeholder="전송할 내용을 입력하세요. DB 파일이나 이미지는 문자 발송 시 해당 앱에서 첨부하여 보내주세요."
+              className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-orange-500/50 transition-all resize-none font-medium text-sm leading-relaxed"
+              placeholder="전송할 내용을 입력하세요."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               disabled={isSending}
             />
+
+            {/* [신규 추가] 파일 첨부 버튼 (텍스트 영역 우하단) */}
+            <div className="absolute bottom-3 right-3">
+              <input
+                type="file"
+                multiple
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-gray-300 hover:text-white transition-colors"
+                title="파일 첨부"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* [신규 추가] 첨부 파일 목록 표시 */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-400 font-medium ml-1">
+                첨부된 파일 ({selectedFiles.length})
+              </p>
+              <div className="bg-white/5 rounded-xl p-2 space-y-2 max-h-32 overflow-y-auto">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between bg-black/20 rounded-lg p-2 pr-3">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <FileText className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                      <span className="text-xs text-gray-300 truncate max-w-[180px]">
+                        {file.name}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        ({(file.size / 1024).toFixed(1)}KB)
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="bg-orange-500/5 border border-orange-500/10 rounded-xl p-4">
             <p className="text-[11px] text-orange-300 font-bold leading-normal">
-              💡 알림: 보안이 필요한 농협 지점 데이터(.db)는 내 PC에 저장한 후, 
-              문자나 카카오톡 파일 첨부 기능을 통해 직접 전송하는 것이 가장 안전합니다.
+              💡 알림: 보안이 필요한 농협 지점 데이터(.db)는 파일 첨부 기능을 통해
+              안전하게 전송할 수 있습니다. 이미지는 자동으로 업로드됩니다.
             </p>
           </div>
         </div>
 
         {/* 푸터 섹션 */}
-        <div className="p-6 pt-2">
+        <div className="p-6 pt-2 mt-auto">
           <button
             onClick={handleSend}
-            disabled={isSending || !message.trim()}
+            disabled={isSending || (!message.trim() && selectedFiles.length === 0)}
             className="w-full py-4 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-800 text-white rounded-[1.25rem] font-black flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-orange-900/20"
           >
             {isSending ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                발송 중...
+                발송 및 업로드 중...
               </span>
             ) : (
               <>

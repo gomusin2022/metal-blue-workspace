@@ -56,24 +56,23 @@ export interface AccountingEntry {
   hour: number;      // 시간 (시)
   minute: number;    // 시간 (분)
   type: '수입' | '지출'; // 구분
-  item: string;      // 수입/지출 내역 (항목)
-  incomeAmount: number; // 수입 금액
-  expenseAmount: number; // 지출 금액
-  balance: number;   // 누계 (실시간 계산)
+  item: string;      // 내역 (사장님 파일의 '항목')
+  incomeAmount: number;  // 수입금액
+  expenseAmount: number; // 지출금액
+  balance: number;   // 누계 (자동 계산)
+
+  // [사장님 지시 추가] 제자리 수정 상태 관리용
+  isEditing?: boolean;
 }
 
-// 다중 장부(시트) 관리를 위한 구조
 export interface AccountingSheet {
   id: string;
-  name: string;      // 시트 제목 (예: 운영비, 지원금)
-  entries: AccountingEntry[]; // 해당 시트의 데이터 리스트
+  name: string;
+  entries: AccountingEntry[];
 }
 
-// 6. 날씨(Weather) 정보 구조
-export interface WeatherInfo {
-  location: string;  // 지역명
-  condition: string; // 기상 상태
-  temp: number;      // 현재 기온
-  minTemp: number;   // 최저 기온
-  maxTemp: number;   // 최고 기온
+// [사장님 지시 추가] 시간 선택 하프모달용 타입 보충
+export interface TimeValue {
+  hour: number;
+  minute: number;
 }

@@ -25,3 +25,6 @@ dist-ssr
 .env
 .vercel
 .env*.local
+# User Uploads
+uploads/*
+!uploads/.gitkeep

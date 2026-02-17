@@ -1,15 +1,19 @@
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const cors = require('cors');
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001; 
+const PORT = 3001;
 
 // 1. 미들웨어 설정
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
 
 // 2. 업로드 폴더 생성 및 정적 파일 경로 설정
@@ -25,13 +29,15 @@ const storage = multer.diskStorage({
         cb(null, UPLOAD_DIR);
     },
     filename: (req, file, cb) => {
+        // 한글 파일명 깨짐 방지를 위해 Buffer 사용
+        file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const ext = path.extname(file.originalname);
         const fileName = `${uuidv4()}${ext}`;
         cb(null, fileName);
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: { fileSize: 20 * 1024 * 1024 } // 최대 20MB 제한
 });
@@ -45,7 +51,7 @@ app.post('/api/upload', upload.array('files'), (req, res) => {
 
         // 현재 실행 중인 서버의 호스트 정보를 기반으로 URL 생성
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        
+
         const urls = req.files.map(file => {
             return `${baseUrl}/uploads/${file.filename}`;
         });
