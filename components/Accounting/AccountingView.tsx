@@ -262,23 +262,25 @@ const AccountingView: React.FC = () => {
           </div>
         </div>
 
-        {/* 추가 버튼 - 추가 모드일 때만 표시 */}
-        {workMode === '추가' && (
-          <div className="px-2 pb-2">
+        <div className="flex items-center justify-between py-3 bg-black/50 border-t border-[#222] px-2">
+          {/* 추가 버튼 - 추가 모드일 때만 표시 */}
+          {workMode === '추가' ? (
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md text-white font-black text-sm transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md text-white font-black text-sm transition-all active:scale-95"
             >
-              <Plus className="w-5 h-5" />
-              <span>새 항목 추가</span>
+              <Plus className="w-4 h-4" />
+              <span>추가</span>
             </button>
-          </div>
-        )}
+          ) : (
+            <div className="w-16"></div>
+          )}
 
-        <div className="flex items-center justify-around py-3 bg-black/50 border-t border-[#222]">
-          <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총수입</p><p className="text-base md:text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총지출</p><p className="text-base md:text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
-          <div className="text-center"><p className="text-sm text-cyan-400 font-black mb-0.5 uppercase">현재누계</p><p className="text-base md:text-lg font-black text-cyan-400">{summary.balance.toLocaleString()}</p></div>
+          <div className="flex items-center justify-around flex-1">
+            <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총수입</p><p className="text-base md:text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
+            <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총지출</p><p className="text-base md:text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
+            <div className="text-center"><p className="text-sm text-cyan-400 font-black mb-0.5 uppercase">현재누계</p><p className="text-base md:text-lg font-black text-cyan-400">{summary.balance.toLocaleString()}</p></div>
+          </div>
         </div>
       </div>
 
