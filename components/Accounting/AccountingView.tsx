@@ -380,11 +380,23 @@ const AccountingView: React.FC = () => {
             <input type="text" value={inItem} onChange={e => setInItem(e.target.value)} placeholder="내용 입력" className="w-full bg-[#111] border border-gray-700 p-2 rounded-lg text-white font-bold text-base h-10" />
           </div>
 
-          {/* 4. 저장 버튼 */}
-          <button onClick={handleSaveEntry} className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-base shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <Check className="w-5 h-5" />
-            <span>저장</span>
-          </button>
+          {/* 4. 저장 및 취소 버튼 */}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-black text-base shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <X className="w-5 h-5" />
+              <span>취소</span>
+            </button>
+            <button
+              onClick={handleSaveEntry}
+              className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-base shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <Check className="w-5 h-5" />
+              <span>저장</span>
+            </button>
+          </div>
         </div>
       </HalfModal>
     </div>
