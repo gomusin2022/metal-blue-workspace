@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Users, MessageSquare, Paperclip, FileText, Trash2 } from 'lucide-react';
 import { Member } from '../../types';
-import { sendSmsMessage, uploadFiles, uploadToVercelBlob } from '../../services/apiService';
+import { sendSmsMessage, uploadFiles, uploadToVercelBlob, shortenUrl, openMobileSmsApp } from '../../services/apiService';
 
 interface MessageModalProps {
   isOpen: boolean;
@@ -61,7 +61,7 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
     // 첨부 파일 개수 확인
     const attachmentMsg = selectedFiles.length > 0 ? ` (+파일 ${selectedFiles.length}개)` : '';
 
-    if (!window.confirm(`${targets.length}명에게 문자를 발송하시겠습니까?${attachmentMsg}`)) return;
+    if (!window.confirm(`${targets.length}명에게 문자를 발송하시겠습니까?${attachmentMsg}\n(스마트폰의 문자 앱이 실행됩니다.)`)) return;
 
     setIsSending(true);
     try {
@@ -70,36 +70,36 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
 
       let attachmentUrls: string[] = [];
 
-      // [신규 로직] 첨부 파일이 있는 경우 업로드 진행 (Vercel Blob 전환)
+      // [신규 로직] 첨부 파일이 있는 경우 업로드 진행 (Vercel Blob)
       if (selectedFiles.length > 0) {
         try {
-          // apiService의 uploadToVercelBlob 함수 호출 (병렬 처리)
-          // client -> Vercel Blob 직접 업로드 방식
+          // 1. Vercel Blob 업로드
           const uploadPromises = selectedFiles.map(file => uploadToVercelBlob(file));
-          attachmentUrls = await Promise.all(uploadPromises);
+          const longUrls = await Promise.all(uploadPromises);
 
-          console.log("파일 업로드 성공 (Vercel Blob):", attachmentUrls);
+          // 2. URL 단축 (짧고 예쁜 링크 생성)
+          // shortenUrl 함수를 apiService.ts에서 import 해야 함
+          const shortenPromises = longUrls.map(url => shortenUrl(url));
+          attachmentUrls = await Promise.all(shortenPromises);
+
+          console.log("파일 업로드 및 단축 성공:", attachmentUrls);
         } catch (uploadError: any) {
           console.error("파일 업로드 실패:", uploadError);
-          // 상세 에러 메시지 표시
           alert(`파일 업로드 실패: ${uploadError.message || "알 수 없는 오류"}`);
           setIsSending(false);
           return;
         }
       }
 
-      // API 서비스 호출 (파일 URL 포함)
-      const success = await sendSmsMessage(phoneNumbers, trimmedMsg, attachmentUrls);
+      // [변경] API 호출 대신 내 폰 문자 앱 실행
+      openMobileSmsApp(phoneNumbers, trimmedMsg, attachmentUrls);
 
-      if (success) {
-        alert("성공적으로 발송되었습니다.");
-        onClose();
-      } else {
-        throw new Error("발송 실패");
-      }
+      // 모달 닫기
+      onClose();
+
     } catch (error) {
-      console.error("SMS Send Error:", error);
-      alert("전송 중 오류가 발생했습니다. 네트워크 상태를 확인하세요.");
+      console.error("SMS App Launch Error:", error);
+      alert("문자 앱 실행 중 오류가 발생했습니다.");
     } finally {
       setIsSending(false);
     }

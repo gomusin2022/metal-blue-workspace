@@ -107,4 +107,51 @@ export const sendSmsMessage = async (numbers: string[], content: string, attachm
   });
 
   return response.ok;
+
+};
+
+/**
+ * [URL 단축 서비스] (신규 추가)
+ * 긴 Vercel Blob URL을 짧은 링크로 변환합니다.
+ */
+export const shortenUrl = async (longUrl: string): Promise<string> => {
+  try {
+    const response = await fetch('/api/shorten', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ originalUrl: longUrl })
+    });
+
+    if (!response.ok) throw new Error('Shorten failed');
+    const data = await response.json();
+    return data.shortUrl;
+  } catch (error) {
+    console.error('URL Shorten Error:', error);
+    return longUrl; // 실패 시 원본 반환
+  }
+};
+
+/**
+ * [무료 문자 발송 - 내 폰 문자 앱 실행] (신규 추가)
+ * API 대신 사용자 스마트폰의 문자 앱을 엽니다.
+ */
+export const openMobileSmsApp = (numbers: string[], message: string, fileUrls?: string[]) => {
+  // 1. 수신자 구분자 설정 (iOS: &, Android: ?)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const separator = isIOS ? '&' : '?';
+  const phoneSeparator = isIOS ? ',' : ';'; // 일부 안드로이드는 ; 사용
+
+  const recipients = numbers.join(phoneSeparator);
+
+  // 2. 메시지 본문 구성
+  let finalMessage = message;
+  if (fileUrls && fileUrls.length > 0) {
+    // 짧은 주소 포맷: [첨부파일] domain.com/s/xyz
+    const formattedLinks = fileUrls.map(url => `[첨부파일] ${url.replace(/^https?:\/\//, '')}`).join('\n');
+    finalMessage += `\n\n${formattedLinks}`;
+  }
+
+  // 3. SMS URI 생성 및 실행
+  const encodedMessage = encodeURIComponent(finalMessage);
+  window.location.href = `sms:${recipients}${separator}body=${encodedMessage}`;
 };

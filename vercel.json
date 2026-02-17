@@ -2,8 +2,20 @@
     "version": 2,
     "rewrites": [
         {
+            "source": "/s/:id",
+            "destination": "/api/redirect?id=:id"
+        },
+        {
             "source": "/api/upload",
             "destination": "/api/upload.js"
+        },
+        {
+            "source": "/api/shorten",
+            "destination": "/api/shorten.js"
+        },
+        {
+            "source": "/api/send-sms",
+            "destination": "/api/send-sms.js"
         }
     ]
 }

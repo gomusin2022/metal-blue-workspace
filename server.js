@@ -102,6 +102,66 @@ app.post('/api/send-sms', (req, res) => {
     res.json({ success: true, count: phoneNumbers.length });
 });
 
+// 4. URL Shortener Handler (Local)
+app.post('/api/shorten', async (req, res) => {
+    try {
+        const { originalUrl } = req.body;
+        if (!originalUrl) return res.status(400).json({ error: 'Original URL is required' });
+
+        const client = await db.connect();
+
+        // 테이블 존재 여부 확인 및 생성
+        await client.sql`
+            CREATE TABLE IF NOT EXISTS short_urls (
+                id VARCHAR(10) PRIMARY KEY,
+                original_url TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `;
+
+        // Generate Short ID
+        const id = Math.random().toString(36).substring(2, 7);
+
+        // Save to DB
+        await client.sql`
+            INSERT INTO short_urls (id, original_url)
+            VALUES (${id}, ${originalUrl})
+        `;
+
+        // Construct Short URL (Local)
+        const protocol = req.protocol;
+        const host = req.get('host'); // localhost:3001
+        // 로컬에서는 Vercel Rewrites가 안 되므로 /api/redirect?id=... 로 직접 연결하거나
+        // 클라이언트에서 /s/ 처리를 못 하므로, 여기서는 테스트용으로 직관적인 주소 반환
+        const shortUrl = `${protocol}://${host}/api/redirect?id=${id}`;
+
+        res.json({ shortUrl });
+    } catch (error) {
+        console.error('Server: Shorten Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 5. URL Redirect Handler (Local)
+app.get('/api/redirect', async (req, res) => {
+    const { id } = req.query;
+    if (!id) return res.status(400).send('Invalid Link');
+
+    try {
+        const client = await db.connect();
+        const { rows } = await client.sql`SELECT original_url FROM short_urls WHERE id = ${id}`;
+
+        if (rows.length > 0) {
+            res.redirect(307, rows[0].original_url);
+        } else {
+            res.status(404).send('Link not found');
+        }
+    } catch (error) {
+        console.error('Server: Redirect Error:', error);
+        res.status(500).send('Server Error');
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
