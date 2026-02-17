@@ -51,12 +51,22 @@ export const uploadFiles = async (files: File[]): Promise<string[]> => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || '파일 업로드 실패');
+      // 응답이 JSON이 아닐 수 있으므로 text로 먼저 읽음
+      const errorText = await response.text();
+      let errorMessage = '파일 업로드 실패';
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorMessage;
+      } catch (e) {
+        // HTML 에러 페이지 등이 반환된 경우
+        console.error("Server Error (Non-JSON response):", errorText);
+        errorMessage = `서버 오류 발생 (${response.status}): 관리자에게 문의하세요.`;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
-    // 서버 응답 규격: { "urls": ["http://...", ...] }
     return data.urls;
   } catch (error) {
     console.error("Local File Upload Error:", error);

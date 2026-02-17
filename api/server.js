@@ -19,6 +19,17 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// [디버깅] 요청 로그 출력
+app.use((req, res, next) => {
+    console.log(`[Request] ${req.method} ${req.url}`);
+    next();
+});
+
+// [Health Check] 서버 상태 확인용
+app.get('/api/upload', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Upload server is running' });
+});
+
 // 2. [Preflight 대응]: OPTIONS 요청에 대해 즉시 200 응답
 // 브라우저가 본 요청(POST)을 보내기 전에 예비 요청을 보낼 때 신속히 응답하여 타임아웃 방지
 app.options('*', (req, res) => {
