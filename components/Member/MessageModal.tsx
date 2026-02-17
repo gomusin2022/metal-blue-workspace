@@ -75,14 +75,9 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
         try {
           // 1. Vercel Blob 업로드
           const uploadPromises = selectedFiles.map(file => uploadToVercelBlob(file));
-          const longUrls = await Promise.all(uploadPromises);
+          attachmentUrls = await Promise.all(uploadPromises);
 
-          // 2. URL 단축 (짧고 예쁜 링크 생성)
-          // shortenUrl 함수를 apiService.ts에서 import 해야 함
-          const shortenPromises = longUrls.map(url => shortenUrl(url));
-          attachmentUrls = await Promise.all(shortenPromises);
-
-          console.log("파일 업로드 및 단축 성공:", attachmentUrls);
+          console.log("파일 업로드 성공 (원본 URL 사용):", attachmentUrls);
         } catch (uploadError: any) {
           console.error("파일 업로드 실패:", uploadError);
           alert(`파일 업로드 실패: ${uploadError.message || "알 수 없는 오류"}`);
