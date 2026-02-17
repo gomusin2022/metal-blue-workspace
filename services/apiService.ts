@@ -95,8 +95,9 @@ export const sendSmsMessage = async (numbers: string[], content: string, attachm
 
   // [기존 로직 보존 및 확장] 서버 엔드포인트 호출
   // 첨부 파일이 있는 경우 body에 포함하여 전송
-  const response = await fetch('/api/db/members', {
-    method: 'PATCH',
+  // Corrected Endpoint: /api/send-sms (POST)
+  const response = await fetch('/api/send-sms', {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       phoneNumbers: numbers,

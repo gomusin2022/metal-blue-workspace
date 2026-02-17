@@ -34,6 +34,7 @@ export default async function handler(request, response) {
                     tokenPayload: JSON.stringify({
                         // uploadedBy: user.id, // 예시
                     }),
+                    addRandomSuffix: true, // 파일명 중복 방지를 위해 랜덤 접미사 추가
                 };
             },
             onUploadCompleted: async ({ blob, tokenPayload }) => {
