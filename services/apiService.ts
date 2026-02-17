@@ -44,8 +44,8 @@ export const uploadFiles = async (files: File[]): Promise<string[]> => {
       formData.append('files', file);
     });
 
-    // 로컬 서버 업로드 엔드포인트 호출
-    const response = await fetch('http://localhost:3001/api/upload', {
+    // 로컬 서버 업로드 엔드포인트 호출 (상대 경로 사용)
+    const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData, // Content-Type은 fetch가 자동으로 설정 (multipart/form-data)
     });
