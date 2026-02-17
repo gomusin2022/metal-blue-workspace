@@ -261,6 +261,20 @@ const AccountingView: React.FC = () => {
             <button onClick={() => window.print()} className="p-2 bg-orange-600 rounded active:scale-95 shadow-md"><Printer className="w-5 h-5" /></button>
           </div>
         </div>
+
+        {/* 추가 버튼 - 추가 모드일 때만 표시 */}
+        {workMode === '추가' && (
+          <div className="px-2 pb-2">
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md text-white font-black text-sm transition-all active:scale-95"
+            >
+              <Plus className="w-5 h-5" />
+              <span>새 항목 추가</span>
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-around py-3 bg-black/50 border-t border-[#222]">
           <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총수입</p><p className="text-base md:text-lg font-black text-emerald-400">+{summary.totalInc.toLocaleString()}</p></div>
           <div className="text-center"><p className="text-sm text-blue-400 font-black mb-0.5">총지출</p><p className="text-base md:text-lg font-black text-rose-500">-{summary.totalExp.toLocaleString()}</p></div>
@@ -326,14 +340,7 @@ const AccountingView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. 입력 푸터 */}
-      {/* FAB (Floating Action Button) */}
-      <button
-        onClick={openAddModal}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full shadow-2xl flex items-center justify-center text-white transition-transform active:scale-95 z-20 border border-white/20"
-      >
-        <Plus className="w-8 h-8" />
-      </button>
+
 
       <HalfModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={getModalTitle()}>
         <div className="flex flex-col gap-3 pb-safe">
