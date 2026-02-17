@@ -20,10 +20,13 @@ export default async function handler(request, response) {
             body,
             request,
             onBeforeGenerateToken: async (pathname) => {
-                // [보안] 인증 로직이 필요하다면 여기에 추가 (예: DB 유저 확인)
-                // 현재는 모든 요청에 대해 업로드를 허용합니다.
+                // [권한 설정] 모든 파일 형식 허용
+                // 클라이언트가 요청한 contentType을 그대로 허용 목록에 추가합니다.
+                // request.body.payload 내에 클라이언트가 보낸 정보가 들어있습니다.
+                const requestedContentType = body?.payload?.contentType;
+
                 return {
-                    allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain'],
+                    allowedContentTypes: requestedContentType ? [requestedContentType] : [],
                     tokenPayload: JSON.stringify({
                         // uploadedBy: user.id, // 예시
                     }),
