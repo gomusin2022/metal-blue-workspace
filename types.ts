@@ -76,3 +76,12 @@ export interface TimeValue {
   hour: number;
   minute: number;
 }
+
+// 6. 날씨 정보 데이터 구조 (Header 컴포넌트용)
+export interface WeatherInfo {
+  location: string;   // 지역명
+  condition: string;  // 날씨 상태 (맑음, 흐림 등)
+  temp: number;       // 현재 기온
+  minTemp: number;    // 최저 기온
+  maxTemp: number;    // 최고 기온
+}
