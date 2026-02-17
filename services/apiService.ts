@@ -122,8 +122,13 @@ export const shortenUrl = async (longUrl: string): Promise<string> => {
       body: JSON.stringify({ originalUrl: longUrl })
     });
 
-    if (!response.ok) throw new Error('Shorten failed');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Shorten failed: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Shorten failed: ${response.status}`);
+    }
     const data = await response.json();
+    console.log("URL Shortened:", longUrl, "->", data.shortUrl);
     return data.shortUrl;
   } catch (error) {
     console.error('URL Shorten Error:', error);
