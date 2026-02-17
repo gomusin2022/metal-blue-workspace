@@ -31,47 +31,12 @@ export const uploadToVercelBlob = async (file: File): Promise<string> => {
 };
 
 /**
- * [로컬 서버 파일 업로드 서비스] - 신규 추가
- * server.js의 /api/upload 엔드포인트를 사용하여 파일을 업로드합니다.
- * @param files 업로드할 파일 배열 (File[])
- * @returns 업로드된 파일들의 URL 배열 (Promise<string[]>)
+ * [로컬 서버 파일 업로드 서비스] - Deprecated (Vercel Blob 전환)
+ * 더 이상 사용하지 않지만, 호환성을 위해 남겨둡니다.
  */
 export const uploadFiles = async (files: File[]): Promise<string[]> => {
-  try {
-    const formData = new FormData();
-    // server.js의 upload.array('files') 설정에 맞춰 'files' 키값 사용
-    files.forEach(file => {
-      formData.append('files', file);
-    });
-
-    // 로컬 서버 업로드 엔드포인트 호출 (상대 경로 사용)
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData, // Content-Type은 fetch가 자동으로 설정 (multipart/form-data)
-    });
-
-    if (!response.ok) {
-      // 응답이 JSON이 아닐 수 있으므로 text로 먼저 읽음
-      const errorText = await response.text();
-      let errorMessage = '파일 업로드 실패';
-
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.error || errorMessage;
-      } catch (e) {
-        // HTML 에러 페이지 등이 반환된 경우
-        console.error("Server Error (Non-JSON response):", errorText);
-        errorMessage = `서버 오류 발생 (${response.status}): 관리자에게 문의하세요.`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    return data.urls;
-  } catch (error) {
-    console.error("Local File Upload Error:", error);
-    throw error;
-  }
+  console.warn("uploadFiles is deprecated. Use uploadToVercelBlob instead.");
+  return [];
 };
 
 /**

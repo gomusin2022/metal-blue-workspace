@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Users, MessageSquare, Paperclip, FileText, Trash2 } from 'lucide-react';
 import { Member } from '../../types';
-import { sendSmsMessage, uploadFiles } from '../../services/apiService';
+import { sendSmsMessage, uploadFiles, uploadToVercelBlob } from '../../services/apiService';
 
 interface MessageModalProps {
   isOpen: boolean;
@@ -70,15 +70,19 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, targets })
 
       let attachmentUrls: string[] = [];
 
-      // [신규 로직] 첨부 파일이 있는 경우 업로드 진행
+      // [신규 로직] 첨부 파일이 있는 경우 업로드 진행 (Vercel Blob 전환)
       if (selectedFiles.length > 0) {
         try {
-          // apiService의 uploadFiles 함수 호출
-          attachmentUrls = await uploadFiles(selectedFiles);
-          console.log("파일 업로드 성공:", attachmentUrls);
-        } catch (uploadError) {
+          // apiService의 uploadToVercelBlob 함수 호출 (병렬 처리)
+          // client -> Vercel Blob 직접 업로드 방식
+          const uploadPromises = selectedFiles.map(file => uploadToVercelBlob(file));
+          attachmentUrls = await Promise.all(uploadPromises);
+
+          console.log("파일 업로드 성공 (Vercel Blob):", attachmentUrls);
+        } catch (uploadError: any) {
           console.error("파일 업로드 실패:", uploadError);
-          alert("파일 업로드에 실패했습니다. 전송을 중단합니다.");
+          // 상세 에러 메시지 표시
+          alert(`파일 업로드 실패: ${uploadError.message || "알 수 없는 오류"}`);
           setIsSending(false);
           return;
         }
